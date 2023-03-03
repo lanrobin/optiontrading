@@ -30,3 +30,6 @@ def get_market_close_time(date_str: str) -> datetime.datetime:
     else:
         #other are all 16:00:00
         return datetime.datetime.combine(market_close_date, datetime.time(hour = 16))
+    
+def datetime_str(dt: datetime.datetime) -> str:
+    return dt.strftime("%Y-%m-%d %H:%M:%S")

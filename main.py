@@ -8,7 +8,7 @@ import env
 
 def switch_position() -> bool:
     print("Begin switch position")
-    env.send_email("期权交易开始", "成功了:" + str(datetime.datetime.now()))
+    env.send_email("期权交易开始", "成功了:" + market_date_utils.datetime_str(datetime.datetime.now()))
     return True
 
 def main():
@@ -26,7 +26,7 @@ def main():
             current = datetime.datetime.now()
             delta = market_close_time - current
             if delta < datetime.timedelta():
-                logging.error("Too late to switch.")
+                logging.error("Too late to switch: " + market_date_utils.datetime_str(current))
                 return
             elif(delta < datetime.timedelta(minutes=5)):
                 succeeded = switch_position()
@@ -35,10 +35,10 @@ def main():
                     return
                 else:
                     retried_time += 1
-                    logging.info("switch result:" + str(succeeded) +", retry " + str(retried_time) + " times")
-            elif delta > datetime.timedelta(minutes=5):
+                    logging.info("switch result:" + str(succeeded) +", retry " + market_date_utils.datetime_str(retried_time) + " times")
+            elif delta > datetime.timedelta(minutes=10):
                 logging.error("To early " + str(delta) +" to switch, exit.")
-                env.send_email("期权交易异常", "开始太早了，现在才：" + str(current))
+                env.send_email("期权交易异常", "开始太早了，现在才：" + market_date_utils.datetime_str(current))
                 return
             
             logging.info("To early " + str(delta) +" to switch, sleep and try again.")
