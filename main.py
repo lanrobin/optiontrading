@@ -36,6 +36,11 @@ def main():
                 else:
                     retried_time += 1
                     logging.info("switch result:" + str(succeeded) +", retry " + str(retried_time) + " times")
+            elif delta > datetime.timedelta(minutes=5):
+                logging.error("To early " + str(delta) +" to switch, exit.")
+                env.send_email("期权交易异常", "开始太早了，现在才：" + str(current))
+                return
+            
             logging.info("To early " + str(delta) +" to switch, sleep and try again.")
             time.sleep(10) # sleep if it is not the last 5 minutes.
 
