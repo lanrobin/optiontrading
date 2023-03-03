@@ -27,15 +27,16 @@ def main():
             delta = market_close_time - current
             if delta < datetime.timedelta():
                 logging.error("Too late to switch.")
-                break
+                return
             elif(delta < datetime.timedelta(minutes=5)):
                 succeeded = switch_position()
                 if(succeeded):
                     logging.info("switch result:" + str(succeeded) +", job done.")
-                    break
+                    return
                 else:
                     retried_time += 1
                     logging.info("switch result:" + str(succeeded) +", retry " + str(retried_time) + " times")
+            logging.info("To early " + str(delta) +" to switch, sleep and try again.")
             time.sleep(10) # sleep if it is not the last 5 minutes.
 
     else:
