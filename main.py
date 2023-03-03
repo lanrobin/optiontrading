@@ -4,9 +4,11 @@ import market_date_utils
 import logging
 import datetime
 import time
+import env
 
 def switch_position() -> bool:
     print("Begin switch position")
+    env.send_email("期权交易开始", "成功了:" + str(datetime.datetime.now()))
     return True
 
 def main():

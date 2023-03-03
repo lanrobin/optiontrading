@@ -10,3 +10,7 @@ This program runs on the Linux, before run, please have following settings.
       So there will be only four possible time that a week ends.
       Thursday 13:00:00 and 16:00:00.
       Friday 13:00:00 and 16:00:00.
+
+{minute} {hour} {day-of-month} {month} {day-of-week} {full-path-to-shell-script} 
+55 12 * * 4,5 path_to_script
+55 15 * * 4,5 path_to_script
