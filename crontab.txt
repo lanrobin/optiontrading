@@ -1,0 +1,12 @@
+This program runs on the Linux, before run, please have following settings.
+
+1. Change the timezone to America/New_York
+    sudo timedatectl set-timezone America/New_York
+
+2. The US stock market open/close
+      2rd Sunday, March ~ 1st Sunday, Nov  --> 9:30 to 16:00
+      Other wise --> 10:30 to 17:00
+      But the cron will handle this since the timezone is America/New_York.
+      So there will be only four possible time that a week ends.
+      Thursday 13:00:00 and 16:00:00.
+      Friday 13:00:00 and 16:00:00.
