@@ -1,1 +1,2 @@
 pip install html-testRunner
+pip install zinvest-trade-api

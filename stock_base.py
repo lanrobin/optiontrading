@@ -7,6 +7,10 @@ class OptionType(Enum):
     CALL = 1
     BOTH = 2
 
+class SecurityType(Enum):
+    STK = 0 # stock
+    OPT = 1 # option
+
 class StockOption:
     def __init__(self, symbol:str, id:str, type:OptionType, bid:float, ask:float, strike:float) -> None:
         StockOption.Symbol = symbol
@@ -51,7 +55,8 @@ class Order:
                  ttl:OrderTTL,
                  market:OrderMarket,
                  price:float,
-                 quantity:int
+                 quantity:int,
+                 sec_type:SecurityType
                  ) -> None:
         Order.Id = id
         Order.Symbol = symbol
@@ -62,10 +67,23 @@ class Order:
         Order.Market = market
         Order.Price = price
         Order.Quantity = quantity
+        Order.SecurityType = sec_type
 
 class StockPosition:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, acnt:str,
+                 exchg:str,
+                 sym:str,
+                 average_cost:float,
+                 total_qty:int,
+                 sec_type:SecurityType,
+                 trading_day:str) -> None:
+        StockPosition.Account = acnt
+        StockPosition.Exchange = exchg
+        StockPosition.Symbol = sym
+        StockPosition.AverageCost = average_cost
+        StockPosition.Quantity = total_qty
+        StockPosition.SecurityType = sec_type
+        StockPosition.TradingDay = trading_day
 
 class OrderOperationResult:
     def __init__(self, error_id:str, error_msg:str) -> None:

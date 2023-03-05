@@ -9,6 +9,7 @@ import re
 from datetime import datetime
 import sys
 import ssl
+import utils
 
 
 def get_data_root_path():
@@ -24,7 +25,7 @@ def get_data_root_path():
     return path
 
 # we make it singleton
-class Settings(object):
+class Settings(metaclass = utils.Singleton):
     def __init__(self, isProduction, smtpUrl, smtpPort, userName, passWord, sender, receiver, azureStorageConnectString):
         self.isProduction = isProduction
         self.smtpUrl = smtpUrl
