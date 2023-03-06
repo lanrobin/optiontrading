@@ -42,6 +42,7 @@ def main():
         time.sleep(60) # sleep for 60 seconds and 
         current = datetime.datetime.now()
 
+    logging.info("Market closed.")
 
 if __name__ == '__main__':
     main()
