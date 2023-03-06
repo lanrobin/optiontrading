@@ -4,7 +4,7 @@ import re
 import json
 
 # we make it singleton
-class ZVSTSSetting(utils.Singleton):
+class ZVSTSSetting(metaclass = utils.Singleton):
     def __init__(self, id:str, key:str, ss: list):
         self.Id = id
         self.Key = key

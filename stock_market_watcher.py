@@ -6,23 +6,57 @@ from concurrent.futures import ThreadPoolExecutor
 import utils
 import zvsts_utils
 import logging
+import json
+
+'''
+Msg format check here: https://www.zvsts.com/api/#section/API/%E6%9C%80%E6%96%B0%E4%BB%B7%E6%8A%A5%E6%96%87
+'''
 
 class ZVSTSRespBase:
     def __init__(self, t:str) -> None:
-        ZVSTSRespBase.T = t
+        self.T = t
 
 class ZVSTSRespMsg(ZVSTSRespBase):
     def __init__(self, t: str, msg:str) -> None:
         super().__init__(t)
-        ZVSTSRespMsg.Msg = msg
+        self.Msg = msg
 
+class ZVSTSRespSub(ZVSTSRespBase):
+    def __init__(self, t: str, snapshots:list, quotes:list) -> None:
+        super().__init__(t)
+        self.SnapShots = snapshots
+        self.Quotes = quotes
 
+class QuoteItem:
+    def __init__(self, p:float, s:int) -> None:
+        self.p = p
+        self.s = s
+
+class ZVSTSRespSnapShot(ZVSTSRespBase):
+    def __init__(self, T: str, S:str, c:float, h:float, o:float, l:float, v:float, t:int) -> None:
+        super().__init__(T)
+        self.S = S
+        self.c = c
+        self.h = h
+        self.o = o
+        self.l = l
+        self.v = v
+        self.t = t
+
+class ZVSTSRespQuote(ZVSTSRespBase):
+    def __init__(self, T: str, S:str, t:int, a:list, b:list) -> None:
+        super().__init__(T)
+        self.S = S
+        self.t = t
+        self.a = a
+        self.b = b
+        
 
 class ZVSTSStockMarketWatcher(metaclass=utils.Singleton):
     def __init__(self) -> None:
-        ZVSTSStockMarketWatcher.Initialized = False
-        ZVSTSStockMarketWatcher.Stream = Stream(zvsts_utils.ZVSTS_SETTING.Id, zvsts_utils.ZVSTS_SETTING.Key)
-        ZVSTSStockMarketWatcher.LastPrice = {}
+        self.Initialized = False
+        self.Stream = Stream(zvsts_utils.ZVSTS_SETTING.Id, zvsts_utils.ZVSTS_SETTING.Key)
+        self.LastPrice = {}
 
     def start_subscribe(self):
         if not self.Initialized:
@@ -52,3 +86,23 @@ class ZVSTSStockMarketWatcher(metaclass=utils.Singleton):
         self.Stream.subscribe_quotes(self.__quote_update, zvsts_utils.ZVSTS_SETTING.SubscribeSymobl)
         self.Stream.run()
         logging.info("__thread_proc finished.")
+
+
+if __name__ == "__main__":
+    jsonStr = '''{
+      "T": "s",
+      "S": "US_AAPL",
+      "t": 142021,
+      "a": [{
+        "p": 485.20,
+        "s": 8700
+      }],
+      "b": [{
+        "p": 488.20,
+        "s": 8600
+      }]
+    }'''
+
+    j = json.loads(jsonStr)
+    s = ZVSTSRespQuote(**j)
+    print(s)

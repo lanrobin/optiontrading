@@ -13,12 +13,12 @@ class SecurityType(Enum):
 
 class StockOption:
     def __init__(self, symbol:str, id:str, type:OptionType, bid:float, ask:float, strike:float) -> None:
-        StockOption.Symbol = symbol
-        StockOption.Id = id
-        StockOption.Type = type
-        StockOption.Bid = bid
-        StockOption.Ask = ask
-        StockOption.Strike = strike
+        self.Symbol = symbol
+        self.Id = id
+        self.Type = type
+        self.Bid = bid
+        self.Ask = ask
+        self.Strike = strike
 
 class OrderType(Enum):
     MarketOrder = 0
@@ -58,16 +58,16 @@ class Order:
                  quantity:int,
                  sec_type:SecurityType
                  ) -> None:
-        Order.Id = id
-        Order.Symbol = symbol
-        Order.Type = type
-        Order.Side = side
-        Order.OpenClose = open_close
-        Order.TTL = ttl
-        Order.Market = market
-        Order.Price = price
-        Order.Quantity = quantity
-        Order.SecurityType = sec_type
+        self.Id = id
+        self.Symbol = symbol
+        self.Type = type
+        self.Side = side
+        self.OpenClose = open_close
+        self.TTL = ttl
+        self.Market = market
+        self.Price = price
+        self.Quantity = quantity
+        self.SecurityType = sec_type
 
 class StockPosition:
     def __init__(self, acnt:str,
@@ -77,18 +77,18 @@ class StockPosition:
                  total_qty:int,
                  sec_type:SecurityType,
                  trading_day:str) -> None:
-        StockPosition.Account = acnt
-        StockPosition.Exchange = exchg
-        StockPosition.Symbol = sym
-        StockPosition.AverageCost = average_cost
-        StockPosition.Quantity = total_qty
-        StockPosition.SecurityType = sec_type
-        StockPosition.TradingDay = trading_day
+        self.Account = acnt
+        self.Exchange = exchg
+        self.Symbol = sym
+        self.AverageCost = average_cost
+        self.Quantity = total_qty
+        self.SecurityType = sec_type
+        self.TradingDay = trading_day
 
 class OrderOperationResult:
     def __init__(self, error_id:str, error_msg:str) -> None:
-        OrderOperationResult.ErrorId = error_id
-        OrderOperationResult.ErrorMsg = error_msg
+        self.ErrorId = error_id
+        self.ErrorMsg = error_msg
 
 class OrderStatus(Order):
     def __init__(self, id:str,
@@ -106,10 +106,10 @@ class OrderStatus(Order):
                  error_msg:str
                  ) -> None:
         super().__init__(id, symbol, type, side, open_close, ttl, market, price, quantity)
-        OrderStatus.StatusType = status_type
-        OrderStatus.FilledQuantity = filled_quantity
-        OrderStatus.ErrorId = error_id
-        OrderStatus.ErrorMsg = error_msg
+        self.StatusType = status_type
+        self.FilledQuantity = filled_quantity
+        self.ErrorId = error_id
+        self.ErrorMsg = error_msg
 
 class IStockClient(abc.ABC):
 
@@ -127,16 +127,16 @@ class IStockClient(abc.ABC):
 
     @abc.abstractmethod
     def place_order(self, order:Order) -> OrderOperationResult:
-        '''Place an order.'''
+        '''Place an self.'''
 
     @abc.abstractmethod
     def modify_order(self, order_id:str, new_quantity:int, new_price:float) -> OrderOperationResult:
-        '''Modify an order.'''
+        '''Modify an self.'''
     
     @abc.abstractmethod
     def cancel_order(self, order_id:str) -> OrderOperationResult:
-        '''Modify an order.'''
+        '''Modify an self.'''
     
     @abc.abstractmethod
     def query_order(self, order_id:str) -> OrderStatus:
-        '''Query an order.'''
+        '''Query an self.'''
