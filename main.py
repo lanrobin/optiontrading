@@ -18,34 +18,29 @@ def main():
     date_str = date.strftime("%Y-%m-%d")
     logging.info("Switch process begin.")
 
-    if market_date_utils.is_date_week_end(date_str):
-        # if today is the end of this week.
-        market_close_time = market_date_utils.get_market_close_time(date_str)
-        retried_time = 0
-        while(retried_time < 10):
-            current = datetime.datetime.now()
-            delta = market_close_time - current
-            if delta < datetime.timedelta():
-                logging.error("Too late to switch: " + market_date_utils.datetime_str(current))
-                return
-            elif(delta < datetime.timedelta(minutes=5)):
-                succeeded = switch_position()
-                if(succeeded):
-                    logging.info("switch result:" + str(succeeded) +", job done.")
-                    return
-                else:
-                    retried_time += 1
-                    logging.info("switch result:" + str(succeeded) +", retry " + market_date_utils.datetime_str(retried_time) + " times")
-            elif delta > datetime.timedelta(minutes=10):
-                logging.error("To early " + str(delta) +" to switch, exit.")
-                env.send_email("期权交易异常", "开始太早了，现在才：" + market_date_utils.datetime_str(current))
-                return
-            
-            logging.info("To early " + str(delta) +" to switch, sleep and try again.")
-            time.sleep(10) # sleep if it is not the last 5 minutes.
+    # it will begin 5 minutes before market open and 5 minutes after the market close.
+    current = datetime.datetime.now()
+    market_open_time = datetime.datetime.combine(current.date(), datetime.time(hour=9))
+    market_close_time = market_date_utils.get_market_close_time(date_str)
 
-    else:
-        logging.info(date_str + " is not week end date, skip.")
+    if not market_date_utils.is_market_open(date_str):
+        logging.warning("Market is not open today:" + date_str)
+        return
+    if current > market_close_time:
+        logging.warning("Market is closed today at :" + market_date_utils.datetime_str(market_close_time))
+        return
+    while current < market_close_time:
+        delta = market_open_time - current
+        if delta > datetime.timedelta(minutes=1):
+            logging.warning("Too early now, let's sleep for a while:" + str(delta))
+            time.sleep(delta.total_seconds - 1)
+        elif current > market_open_time:
+            # market is open now.
+            succeeded = switch_position()
+            logging.info("switch result:" + str(succeeded) +", job done.")
+
+        time.sleep(60) # sleep for 60 seconds and 
+        current = datetime.datetime.now()
 
 
 if __name__ == '__main__':

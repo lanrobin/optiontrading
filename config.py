@@ -18,6 +18,9 @@ SPECIAL_WEEK_END_DATE = {
     # End Juneteenth National Independence Day
 
     # Independence Day
+    "2023-07-03": (13, False, True, True), # Thursday
+    "2023-07-04": (13, False, False, False), # Thursday
+    "2024-07-03": (13, False, True, True), # Thursday
     "2024-07-04": (13, False, False, False), # Thursday
     "2025-07-03": (13, True, True, True), # Thursday
     "2025-07-04": (16, True, False, False), # Friday
@@ -33,7 +36,8 @@ SPECIAL_WEEK_END_DATE = {
     # End Thanksgiving Day
 
     # Christmas Day
-    "2025-12-24": (16, False, False, False), # Thursday
+    "2024-12-24": (13, False, True, True), # Tuesday
+    "2025-12-24": (13, False, True, True), # WednesDay
     # End Christmas Day
 }
 

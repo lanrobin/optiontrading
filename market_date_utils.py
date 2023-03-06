@@ -31,5 +31,11 @@ def get_market_close_time(date_str: str) -> datetime.datetime:
         #other are all 16:00:00
         return datetime.datetime.combine(market_close_date, datetime.time(hour = 16))
     
+def is_market_open(date_str: str) -> bool:
+    date = pd.Timestamp(date_str)
+    if(date.dayofweek == 5 or date.dayofweek == 6):
+        return False
+    return date_str not in config.MARKET_CLOSE_DATES
+    
 def datetime_str(dt: datetime.datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
