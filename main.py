@@ -33,7 +33,7 @@ def main():
         delta = market_open_time - current
         if delta > datetime.timedelta(minutes=1):
             logging.warning("Too early now, let's sleep for a while:" + str(delta))
-            time.sleep(delta.total_seconds - 1)
+            time.sleep(delta.total_seconds() - 1)
         elif current > market_open_time:
             # market is open now.
             succeeded = switch_position()
