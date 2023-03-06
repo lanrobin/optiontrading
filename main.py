@@ -8,7 +8,7 @@ import env
 
 def switch_position() -> bool:
     print("Begin switch position")
-    env.send_email("期权交易开始", "成功了:" + market_date_utils.datetime_str(datetime.datetime.now()))
+    #env.send_email("期权交易开始", "成功了:" + market_date_utils.datetime_str(datetime.datetime.now()))
     return True
 
 def main():
@@ -18,6 +18,7 @@ def main():
     date_str = date.strftime("%Y-%m-%d")
     logging.info("Switch process begin.")
 
+    start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.
     current = datetime.datetime.now()
     market_open_time = datetime.datetime.combine(current.date(), datetime.time(hour=9))
@@ -35,6 +36,9 @@ def main():
             logging.warning("Too early now, let's sleep for a while:" + str(delta))
             time.sleep(delta.total_seconds() - 1)
         elif current > market_open_time:
+            if not start_email_sent:
+                env.send_email("期权交易开始了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
+                start_email_sent = True
             # market is open now.
             succeeded = switch_position()
             logging.info("switch result:" + str(succeeded) +", job done.")
@@ -43,6 +47,7 @@ def main():
         current = datetime.datetime.now()
 
     logging.info("Market closed.")
+    env.send_email("期权交易结束了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
 
 if __name__ == '__main__':
     main()
