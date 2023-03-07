@@ -26,7 +26,7 @@ def main():
     start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.
     current = datetime.datetime.now()
-    market_open_time = datetime.datetime.combine(current.date(), datetime.time(hour=9))
+    market_open_time = datetime.datetime.combine(current.date(), datetime.time(hour=9, minute=30))
     market_close_time = market_date_utils.get_market_close_time(date_str)
 
     if not market_date_utils.is_market_open(date_str):
