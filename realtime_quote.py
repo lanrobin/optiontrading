@@ -18,4 +18,4 @@ def get_realtime_quote_price(symbol):
 import yfinance as yf
 def get_realtime_quote_price(symbol):
     data = yf.download(tickers='QQQ', period='1d', interval='1m')
-    print(data.values[-1][0])
+    return data.values[-1][0]
