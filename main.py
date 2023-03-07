@@ -5,9 +5,14 @@ import logging
 import datetime
 import time
 import env
+import realtime_quote
+
+symbol = "QQQ"
 
 def switch_position() -> bool:
-    print("Begin switch position")
+    logging.debug("Begin switch position.")
+    stock_price = realtime_quote.get_realtime_quote_price("QQQ")
+    logging.info(f"Get the {symbol} at price:{stock_price}")
     #env.send_email("期权交易开始", "成功了:" + market_date_utils.datetime_str(datetime.datetime.now()))
     return True
 
@@ -16,7 +21,7 @@ def main():
     
     date = pd.Timestamp.now()
     date_str = date.strftime("%Y-%m-%d")
-    logging.info("Switch process begin.")
+    logging.info("Program launching.")
 
     start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.

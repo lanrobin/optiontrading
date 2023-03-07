@@ -1,2 +1,3 @@
 pip install html-testRunner
-pip install zinvest-trade-api
+# pip install zinvest-trade-api 不需要了。
+pip3 install tigeropen
