@@ -12,13 +12,14 @@ class SecurityType(Enum):
     OPT = 1 # option
 
 class StockOption:
-    def __init__(self, symbol:str, id:str, type:OptionType, bid:float, ask:float, strike:float) -> None:
+    def __init__(self, symbol:str, id:str, type:OptionType, bid:float, ask:float, strike:float, expire_date:str) -> None:
         self.Symbol = symbol
         self.Id = id
         self.Type = type
         self.Bid = bid
         self.Ask = ask
         self.Strike = strike
+        self.ExpireDate = expire_date
 
 class OrderType(Enum):
     MarketOrder = 0
@@ -114,7 +115,7 @@ class OrderStatus(Order):
 class IStockClient(abc.ABC):
 
     @abc.abstractmethod
-    def initialize():
+    def initialize(self, sandbox:bool):
         '''Intialize the client.'''
     
     @abc.abstractmethod
@@ -122,7 +123,7 @@ class IStockClient(abc.ABC):
         '''Get the symbol's option chain with expected type and expire date.'''
 
     @abc.abstractmethod
-    def get_position(self, market: OrderMarket) -> List[StockPosition]:
+    def get_position(self, market: OrderMarket, security_type: SecurityType) -> List[StockPosition]:
         '''Get the positions in target market.'''
 
     @abc.abstractmethod

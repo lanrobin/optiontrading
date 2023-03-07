@@ -6,14 +6,21 @@ import datetime
 import time
 import env
 import realtime_quote
+import stock_base
+from stock_tiger import TigerStockClient
 
-symbol = "QQQ"
+SYMBOL = "QQQ"
 
-def switch_position() -> bool:
+def close_position_if_executed(client: stock_base.IStockClient) -> bool:
+    pass
+
+def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
     logging.debug("Begin switch position.")
-    stock_price = realtime_quote.get_realtime_quote_price("QQQ")
+    stock_price = realtime_quote.get_realtime_quote_price(symbol)
     logging.info(f"Get the {symbol} at price:{stock_price}")
     #env.send_email("期权交易开始", "成功了:" + market_date_utils.datetime_str(datetime.datetime.now()))
+    next_friday = market_date_utils.get_next_nth_friday(datetime.datetime.now(), 1)
+    options = client.get_option_chain(symbol, next_friday.strftime("%Y-%m-%d"), stock_base.OptionType.PUT)
     return True
 
 def main():
@@ -22,6 +29,8 @@ def main():
     date = pd.Timestamp.now()
     date_str = date.strftime("%Y-%m-%d")
     logging.info("Program launching.")
+    stockClient = TigerStockClient()
+    succeeded = switch_position(client = stockClient, symbol = SYMBOL)
 
     start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.
