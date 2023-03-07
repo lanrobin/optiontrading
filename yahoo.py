@@ -3,8 +3,13 @@ import time
 
 
 if __name__ == "__main__":
-    qqq = yf.Ticker("QQQ")
+
+    print_header = False
     while True:
-        info = qqq.fast_info
-        print("price:" + str(info.last_price))
-        time.sleep(15)
+        data = yf.download(tickers='QQQ', period='1d', interval='1m')
+        if not print_header:
+            print(data.columns)
+            print_header = True
+
+        print(data.values[-1])
+        time.sleep(10)

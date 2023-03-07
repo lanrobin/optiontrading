@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+'''from bs4 import BeautifulSoup
 import requests
 
 def get_realtime_quote_price(symbol):
@@ -14,3 +14,8 @@ def get_realtime_quote_price(symbol):
     soup = BeautifulSoup(page.text, 'lxml')
     price = soup.find('fin-streamer', attrs={"data-symbol":f"{symbol}", "data-field":"regularMarketPrice"})
     return price.text if price is not None else ""
+'''
+import yfinance as yf
+def get_realtime_quote_price(symbol):
+    data = yf.download(tickers='QQQ', period='1d', interval='1m')
+    print(data.values[-1][0])
