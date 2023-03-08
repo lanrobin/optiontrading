@@ -63,7 +63,15 @@ class TigerStockClient(IStockClient):
     
 
     def get_option_chain(self, symbol:str, expire_date_str:str, type:OptionType) -> List[StockOption]:
-        opt_data = realtime_quote.get_option_chain(symbol=symbol, expired_date_str=expire_date_str, option_type=type)
+        option_type = "CALL"
+        if type == OptionType.PUT:
+            option_type = "PUT"
+        elif option_type == "CALL":
+            option_type = "CALL"
+        else:
+            raise Exception("Unsupport option type:" + type)
+
+        opt_data = realtime_quote.get_option_chain(symbol=symbol, expired_date_str=expire_date_str, option_type=option_type)
         options = []
         if opt_data is not None:
             for od in opt_data.values:
@@ -196,8 +204,10 @@ class TigerStockClient(IStockClient):
         else:
             raise Exception("Unsupported market type:" + str(tigerMarketType))
         
-        ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, expiry = expiry.strftime("%Y%m%d"))
-        return self.__tiger_position_converter(ps)
+        expiry_str = expiry.strftime("%Y%m%d")
+        ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, expiry = expiry_str)
+        raw_position = self.__tiger_position_converter(ps)
+        return [r for r in raw_position if r.Expiry == expiry_str]
 
     def __tiger_position_converter(self, ps:list) -> list[StockPosition]:
         positions = []
