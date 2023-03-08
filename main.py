@@ -72,7 +72,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
     ### STEP 2: If there is open options, sell them.
     logging.info(f"There are {len(positions)} contracts positions.")
     for p in positions:
-        client.buy_option_to_close(p.Id, p.OptionType, p.Quantity)
+        client.buy_option_to_close(p.Id, p.OptionType, -p.Quantity)
         logging.info(f"Buy {p.Id} with {p.Quantity} contracts.")
     
     ### STEP 3: Sell options that expire in next Friday

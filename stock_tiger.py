@@ -130,7 +130,7 @@ class TigerStockClient(IStockClient):
 
         self.TradeClient.place_order(order)
 
-        return OrderStatus(order.id, "0", "OK")
+        return OrderStatus(order.id, "0", "OK", order)
 
     
     def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> OrderStatus:
@@ -152,7 +152,7 @@ class TigerStockClient(IStockClient):
 
         self.TradeClient.place_order(order)
 
-        return OrderStatus(order.id, "0", "OK")
+        return OrderStatus(order.id, "0", "OK", order)
     
     
     def sell_position_to_close(self, opt_position:StockPosition) -> OrderStatus:
