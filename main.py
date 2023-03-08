@@ -23,7 +23,7 @@ def close_position_if_executed(client: stock_base.IStockClient, symbol:str) -> b
     expiried_opt_str_this_friday = this_friday.strftime("%Y-%m-%d")
 
     #positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
-    positions = client.get_position(stock_base.OrderMarket.US, stock_base.SecurityType.ALL, symbol)
+    positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
     if len(positions) < 1:
         # if there is no option expired this friday. We will try to open it.
         succeeded = client.sell_stock_to_close(symbol)

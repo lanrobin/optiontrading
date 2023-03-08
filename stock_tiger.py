@@ -68,7 +68,7 @@ class TigerStockClient(IStockClient):
         elif security_type == SecurityType.STK:
             tigerSecurityType = tst.STK
         elif security_type == SecurityType.ALL:
-            tigerMarketType = tst.ALL
+            tigerSecurityType = tst.ALL
         else:
             raise Exception("Unsupported security type:" + str(security_type))
         
@@ -77,8 +77,13 @@ class TigerStockClient(IStockClient):
             tigerMarketType = Market.US
         else:
             raise Exception("Unsupported market type:" + str(tigerMarketType))
-        ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tigerSecurityType, symbol = symbol)
-        return self.__tiger_position_converter(ps)
+        ps = self.TradeClient.get_positions(market = Market.US, sec_type=tigerSecurityType)
+        all_items = self.__tiger_position_converter(ps)
+        if(symbol is not None):
+            return[p for p in all_items  if p.Symbol.casefold() == symbol.casefold()]
+        else:
+            return all_items
+        
 
 
     def place_order(self, order:Order) -> OrderOperationResult:
@@ -130,7 +135,7 @@ class TigerStockClient(IStockClient):
         else:
             raise Exception("Unsupported market type:" + str(tigerMarketType))
         
-        ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, symbol = symbol)
+        ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, expiry = expiry.strftime("%Y%m%d"))
         return self.__tiger_position_converter(ps)
 
     def __tiger_position_converter(self, ps:list) -> list[StockPosition]:
