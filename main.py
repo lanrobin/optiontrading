@@ -10,6 +10,7 @@ import stock_base
 from stock_tiger import TigerStockClient
 
 SYMBOL = "QQQ"
+SANDBOX = True
 
 def get_stock_client(brokerName:str):
     if brokerName.casefold() == "TIGER".casefold():
@@ -93,7 +94,11 @@ def main():
     date_str = date.strftime("%Y-%m-%d")
     logging.info("Program launching.")
     stockClient = get_stock_client("TIGER")
-    stockClient.initialize(sandbox=False)
+
+
+    stockClient.initialize(sandbox=SANDBOX)
+    if not SANDBOX:
+        raise Exception ("It is prod Now.")
 
     close_position_if_executed(stockClient, SYMBOL)
     switch_position(stockClient, SYMBOL)
