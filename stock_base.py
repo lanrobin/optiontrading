@@ -175,7 +175,7 @@ class IStockClient(abc.ABC):
         '''Query an self.'''
     
     @abc.abstractmethod
-    def get_option_position(self, market: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> list[StockPosition]:
+    def get_option_position(self, market: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> List[StockPosition]:
         '''Query an self.'''
         
 def get_option_type_from_str(opt_type:str) -> OptionType:
@@ -187,14 +187,14 @@ def get_option_type_from_str(opt_type:str) -> OptionType:
         return OptionType.NONE
     
 
-def save_positions_to_file(expired_str:str, positions:list[StockPosition]) -> bool:
+def save_positions_to_file(expired_str:str, positions:List[StockPosition]) -> bool:
     filename = get_positions_local_file_name(expired_str)
     with open(filename, 'wb') as f:
         json_str = orjson.dumps(positions,  default = lambda x: x.__dict__)
         f.write(json_str)
     return True
 
-def load_positions_from_file(expired_str:str) -> list[StockPosition]:
+def load_positions_from_file(expired_str:str) -> List[StockPosition]:
     filename = get_positions_local_file_name(expired_str)
     objs = []
     with open(filename, 'rb') as f:

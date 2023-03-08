@@ -189,7 +189,7 @@ class TigerStockClient(IStockClient):
             logging.error("Incorrect position for symbol:" + symbol)
             raise Exception("Incorrect position for symbol:" + symbol +", count:" + str(len(stock_position)))
 
-    def get_option_position(self, optMarket: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> list[StockPosition]:
+    def get_option_position(self, optMarket: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> List[StockPosition]:
         put_call = ""
         if optionType == OptionType.CALL:
             put_call = "CALL"
@@ -209,7 +209,7 @@ class TigerStockClient(IStockClient):
         raw_position = self.__tiger_position_converter(ps)
         return [r for r in raw_position if r.Expiry == expiry_str]
 
-    def __tiger_position_converter(self, ps:list) -> list[StockPosition]:
+    def __tiger_position_converter(self, ps:list) -> List[StockPosition]:
         positions = []
         if ps is not None:
             for p in ps:
