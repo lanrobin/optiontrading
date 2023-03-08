@@ -1,15 +1,23 @@
 import abc
+import orjson
+import re
 from enum import Enum
 from typing import List
+from file_util import ensure_path_exists
+import env
+import logging
+from datetime import date
 
 class OptionType(Enum):
-    PUT = 0
+    NONE = 0
     CALL = 1
-    BOTH = 2
+    PUT = 2
+    BOTH = 3
 
 class SecurityType(Enum):
-    STK = 0 # stock
-    OPT = 1 # option
+    ALL = 0
+    STK = 1 # stock
+    OPT = 2 # option
 
 class StockOption:
     def __init__(self, symbol:str, id:str, type:OptionType, bid:float, ask:float, strike:float, expire_date:str) -> None:
@@ -19,7 +27,7 @@ class StockOption:
         self.Bid = bid
         self.Ask = ask
         self.Strike = strike
-        self.ExpireDate = expire_date
+        self.Expiry = expire_date
 
 class OrderType(Enum):
     MarketOrder = 0
@@ -71,20 +79,33 @@ class Order:
         self.SecurityType = sec_type
 
 class StockPosition:
-    def __init__(self, acnt:str,
-                 exchg:str,
-                 sym:str,
-                 average_cost:float,
-                 total_qty:int,
-                 sec_type:SecurityType,
-                 trading_day:str) -> None:
-        self.Account = acnt
-        self.Exchange = exchg
-        self.Symbol = sym
-        self.AverageCost = average_cost
-        self.Quantity = total_qty
-        self.SecurityType = sec_type
-        self.TradingDay = trading_day
+    def __init__(self,
+                 Account:str,
+                 Exchange:str,
+                 Symbol:str,
+                 Id:str,
+                 AverageCost:float,
+                 Quantity:int,
+                 SecurityType:SecurityType,
+                 OptionType:OptionType,
+                 TradingDate:str,
+                 MarketValue:float,
+                 MarketPrice:float,
+                 Expiry:str,
+                 Strike:float) -> None:
+        self.Account = Account
+        self.Exchange = Exchange
+        self.Symbol = Symbol
+        self.Id = Id
+        self.AverageCost = AverageCost
+        self.Quantity = Quantity
+        self.SecurityType = SecurityType
+        self.OptionType = OptionType
+        self.TradingDate = TradingDate
+        self.MarketValue = MarketValue
+        self.MarketPrice = MarketPrice
+        self.Expiry = Expiry
+        self.Strike = Strike
 
 class OrderOperationResult:
     def __init__(self, error_id:str, error_msg:str) -> None:
@@ -120,10 +141,10 @@ class IStockClient(abc.ABC):
     
     @abc.abstractmethod
     def get_option_chain(self, symbol:str, expire_date_str:str, type:OptionType) -> List[StockOption]:
-        '''Get the symbol's option chain with expected type and expire date.'''
+        '''Get the symbol's option chain with expected type and expire date. Sorted by strike asc.'''
 
     @abc.abstractmethod
-    def get_position(self, market: OrderMarket, security_type: SecurityType) -> List[StockPosition]:
+    def get_position(self, market: OrderMarket, security_type: SecurityType, symbol:str) -> List[StockPosition]:
         '''Get the positions in target market.'''
 
     @abc.abstractmethod
@@ -141,3 +162,61 @@ class IStockClient(abc.ABC):
     @abc.abstractmethod
     def query_order(self, order_id:str) -> OrderStatus:
         '''Query an self.'''
+
+    @abc.abstractmethod
+    def buy_position_to_close(self, opt_position:list[StockPosition]) -> list[OrderStatus]:
+        '''Query an self.'''
+
+    @abc.abstractmethod
+    def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> list[OrderStatus]:
+        '''Query an self.'''
+    
+    @abc.abstractmethod
+    def sell_position_to_close(self, opt_position:list[StockPosition]) -> list[OrderStatus]:
+        '''Query an self.'''
+
+    @abc.abstractmethod
+    def sell_stock_to_close(self, symbol:str) -> list[OrderStatus]:
+        '''Query an self.'''
+    
+    @abc.abstractmethod
+    def get_option_position(self, market: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> list[OrderStatus]:
+        '''Query an self.'''
+        
+def get_option_type_from_str(opt_type:str) -> OptionType:
+    if opt_type.casefold() == "PUT".casefold():
+        return OptionType.PUT
+    elif opt_type.casefold() == "CALL".casefold():
+        return OptionType.CALL
+    else:
+        return OptionType.NONE
+    
+
+def save_positions_to_file(expired_str:str, positions:list[StockPosition]) -> bool:
+    filename = get_positions_local_file_name(expired_str)
+    with open(filename, 'wb') as f:
+        json_str = orjson.dumps(positions,  default = lambda x: x.__dict__)
+        f.write(json_str)
+    return True
+
+def load_positions_from_file(expired_str:str) -> list[StockPosition]:
+    filename = get_positions_local_file_name(expired_str)
+    objs = []
+    with open(filename, 'rb') as f:
+        objs = orjson.loads(f.read())
+    positions = []
+    for o in objs:
+        positions.append(StockPosition(**o))
+    
+    return positions
+
+def get_positions_local_file_name(expired_date_str:str) -> str:
+    path = f"{env.get_data_root_path()}/position/"
+    ensure_path_exists(path)
+    return f"{path}/{expired_date_str}_opt.json"
+
+def get_put_option_strike_price(symbol:str) -> float:
+    return 300
+
+def get_contract_number_of_option(symbol:str) -> int:
+    return 1

@@ -25,9 +25,9 @@ class TigerStockClient(IStockClient):
     def initialize(self, sandbox:bool):
         config_path = ""
         if sandbox:
-            config_path = f"{env.get_data_root_path()}//tigersandbox"
+            config_path = f"{env.get_data_root_path()}/tigersandbox"
         else:
-            config_path = f"{env.get_data_root_path()}//tigerprod"
+            config_path = f"{env.get_data_root_path()}/tigerprod"
         
         client_config = TigerOpenClientConfig(sandbox_debug=sandbox, props_path=config_path)
         client_config.log_level = logging.DEBUG
@@ -55,16 +55,20 @@ class TigerStockClient(IStockClient):
                                         ask = od[5],
                                         strike=od[2],
                                         expire_date = expire_date_str))
-            
+        
+        # sorted.
+        options.sort(key = lambda v: v.Strike)
         return options
 
 
-    def get_position(self, market: OrderMarket, security_type: SecurityType) -> List[StockPosition]:
-        tigerSecurityType = tst.CASH
+    def get_position(self, market: OrderMarket, security_type: SecurityType, symbol:str) -> List[StockPosition]:
+        tigerSecurityType = tst.ALL
         if security_type == SecurityType.OPT:
             tigerSecurityType = tst.OPT
         elif security_type == SecurityType.STK:
             tigerSecurityType = tst.STK
+        elif security_type == SecurityType.ALL:
+            tigerMarketType = tst.ALL
         else:
             raise Exception("Unsupported security type:" + str(security_type))
         
@@ -73,7 +77,8 @@ class TigerStockClient(IStockClient):
             tigerMarketType = Market.US
         else:
             raise Exception("Unsupported market type:" + str(tigerMarketType))
-        ps = TradeClient.get_positions(market = tigerMarketType, sec_type = tigerMarketType)
+        ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tigerSecurityType, symbol = symbol)
+        return self.__tiger_position_converter(ps)
 
 
     def place_order(self, order:Order) -> OrderOperationResult:
@@ -90,3 +95,60 @@ class TigerStockClient(IStockClient):
 
     def query_order(self, order_id:str) -> OrderStatus:
         raise Exception("Not implemented.")
+    
+    
+    def buy_position_to_close(self, opt_position:list[StockPosition]) -> list[OrderStatus]:
+        logging.debug("buy_position_to_close called.")
+        return []
+
+    
+    def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> list[OrderStatus]:
+        logging.debug("sell_position_to_open called.")
+        return []
+    
+    
+    def sell_position_to_close(self, opt_position:list[StockPosition]) -> list[OrderStatus]:
+        logging.debug("sell_position_to_close called.")
+        return []
+    
+    def sell_stock_to_close(self, symbol:str) -> list[OrderStatus]:
+        logging.debug("sell_stock_to_close called.")
+        return []
+    
+    def get_option_position(self, optMarket: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> list[OrderStatus]:
+        put_call = ""
+        if optionType == OptionType.CALL:
+            put_call = "CALL"
+        elif optionType == OptionType.PUT:
+            put_call = "PUT"
+        else:
+            raise Exception("Unsupported OptionType:" + str(optionType))
+        
+        tigerMarketType = Market.US
+        if optMarket == OrderMarket.US:
+            tigerMarketType = Market.US
+        else:
+            raise Exception("Unsupported market type:" + str(tigerMarketType))
+        
+        ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, symbol = symbol)
+        return self.__tiger_position_converter(ps)
+
+    def __tiger_position_converter(self, ps:list) -> list[StockPosition]:
+        positions = []
+        if ps is not None:
+            for p in ps:
+                positions.append(StockPosition(Account = p.account,
+                                               Exchange= p.contract.currency,
+                                               Symbol = p.contract.symbol,
+                                               Id = p.contract.identifier,
+                                               AverageCost = p.average_cost,
+                                               Quantity= p.quantity,
+                                               SecurityType = SecurityType.OPT,
+                                               OptionType = get_option_type_from_str(p.contract.put_call),
+                                               TradingDate = "",
+                                               MarketValue = p.market_value,
+                                               MarketPrice= p.market_price,
+                                               Expiry= p.contract.expiry,
+                                               Strike= p.contract.strike
+                                               ))
+        return positions

@@ -40,7 +40,7 @@ def is_market_open(date_str: str) -> bool:
 def datetime_str(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
-def get_next_nth_friday(current:datetime, next = 0) -> datetime:
+def get_next_nth_friday(current:datetime, next = 0) -> date:
     today = date.today()
     next_friday = today + timedelta( (4-today.weekday()) % 7 + next * 7)
     return next_friday
