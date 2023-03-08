@@ -11,7 +11,7 @@ from stock_tiger import TigerStockClient
 
 SYMBOL = "QQQ"
 PROD_ENV = False
-DEBUG = True
+DEBUG = False
 
 def get_stock_client(brokerName:str):
     if brokerName.casefold() == "TIGER".casefold():
@@ -31,11 +31,11 @@ def close_position_if_executed(client: stock_base.IStockClient, symbol:str) -> b
 
         # sell all the stock first.
         client.sell_all_stock_to_close(symbol=symbol)
-
+        logging.warning("There is no options expired this friday. We need to open it.")
         order_status = client.sell_put_option_to_open(symbol, stock_base.get_put_option_strike_price(symbol), stock_base.get_contract_number_of_option(symbol), this_friday)
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
         stock_base.save_positions_to_file(expiried_opt_str_this_friday, positions)
-        logging.warning("There is no options expired this friday. We need to open it.")
+        logging.warning(f"Sold {stock_base.get_contract_number_of_option(symbol)} options expired this friday.")
         return True
 
     loaded_positions = stock_base.load_positions_from_file(expiried_opt_str_this_friday)
@@ -45,7 +45,7 @@ def close_position_if_executed(client: stock_base.IStockClient, symbol:str) -> b
         stock_base.save_positions_to_file(expiried_opt_str_this_friday, positions)
         return True
 
-    logging.info(f"There are{len(positions)} options in the position and {len(loaded_positions)} options in the local disk.")
+    logging.info(f"There are {len(positions)} options in the position and {len(loaded_positions)} options in the local disk.")
 
     # compare two position, if there is difference, that means some option got executed. we need to close the stock position.
     diff = set([ f"{p.Id}-{p.Quantity}".upper() for p in loaded_positions]) - set([ f"{p.Id}-{p.Quantity}".upper() for p in positions])

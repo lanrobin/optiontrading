@@ -208,7 +208,22 @@ class TigerStockClient(IStockClient):
         ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, expiry = expiry_str)
         raw_position = self.__tiger_position_converter(ps)
         return [r for r in raw_position if r.Expiry == expiry_str]
+    
+    def __convert_security_type(self, tigerType: tst) -> SecurityType:
+        if tst.OPT == tigerType:
+            return SecurityType.OPT
+        elif tst.STK == tigerType:
+            return SecurityType.STK
 
+    def __get_option_type(self, put_call:str) -> OptionType:
+        if put_call is None:
+            return OptionType.NONE
+        if put_call.casefold() == "CALL".casefold():
+            return OptionType.CALL
+        if put_call.casefold() == "PUT".casefold():
+            return OptionType.PUT
+        return OptionType.NONE
+        
     def __tiger_position_converter(self, ps:list) -> List[StockPosition]:
         positions = []
         if ps is not None:
@@ -219,8 +234,8 @@ class TigerStockClient(IStockClient):
                                                Id = p.contract.identifier,
                                                AverageCost = p.average_cost,
                                                Quantity= p.quantity,
-                                               SecurityType = SecurityType.OPT,
-                                               OptionType = get_option_type_from_str(p.contract.put_call),
+                                               SecurityType = self.__convert_security_type(p.contract.sec_type),
+                                               OptionType = self.__get_option_type(p.contract.put_call),
                                                TradingDate = "",
                                                MarketValue = p.market_value,
                                                MarketPrice= p.market_price,
