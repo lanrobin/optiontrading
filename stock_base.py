@@ -7,6 +7,7 @@ from file_util import ensure_path_exists
 import env
 import logging
 from datetime import date
+import realtime_quote
 
 class OptionType(Enum):
     NONE = 0
@@ -112,31 +113,21 @@ class OrderOperationResult:
         self.ErrorId = error_id
         self.ErrorMsg = error_msg
 
-class OrderStatus(Order):
+class OrderStatus():
     def __init__(self, id:str,
-                 symbol:str,
-                 type: OrderType,
-                 side:OrderSide,
-                 open_close:OrderOpenClose,
-                 ttl:OrderTTL,
-                 market:OrderMarket,
-                 price:float,
-                 quantity:int,
-                 status_type: OrderStatusType,
-                 filled_quantity:int,
                  error_id:str,
-                 error_msg:str
+                 error_msg:str,
+                 order
                  ) -> None:
-        super().__init__(id, symbol, type, side, open_close, ttl, market, price, quantity)
-        self.StatusType = status_type
-        self.FilledQuantity = filled_quantity
+        self.Id = id
         self.ErrorId = error_id
         self.ErrorMsg = error_msg
+        self.brokerOrder = order
 
 class IStockClient(abc.ABC):
 
     @abc.abstractmethod
-    def initialize(self, sandbox:bool):
+    def initialize(self, prod_env:bool):
         '''Intialize the client.'''
     
     @abc.abstractmethod
@@ -164,23 +155,27 @@ class IStockClient(abc.ABC):
         '''Query an self.'''
 
     @abc.abstractmethod
-    def buy_position_to_close(self, opt_position:list[StockPosition]) -> list[OrderStatus]:
+    def buy_option_to_close(self, id:str, opt_type:OptionType, quantity:int) -> OrderStatus:
         '''Query an self.'''
 
     @abc.abstractmethod
-    def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> list[OrderStatus]:
+    def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> OrderStatus:
         '''Query an self.'''
     
     @abc.abstractmethod
-    def sell_position_to_close(self, opt_position:list[StockPosition]) -> list[OrderStatus]:
+    def sell_position_to_close(self, opt_position:StockPosition) -> OrderStatus:
         '''Query an self.'''
 
     @abc.abstractmethod
-    def sell_stock_to_close(self, symbol:str) -> list[OrderStatus]:
+    def sell_stock_to_close(self, symbol:str, quantity:int) -> OrderStatus:
+        '''Query an self.'''
+
+    @abc.abstractmethod
+    def sell_all_stock_to_close(self, symbol:str) -> OrderStatus:
         '''Query an self.'''
     
     @abc.abstractmethod
-    def get_option_position(self, market: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> list[OrderStatus]:
+    def get_option_position(self, market: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> list[StockPosition]:
         '''Query an self.'''
         
 def get_option_type_from_str(opt_type:str) -> OptionType:
@@ -216,7 +211,16 @@ def get_positions_local_file_name(expired_date_str:str) -> str:
     return f"{path}/{expired_date_str}_opt.json"
 
 def get_put_option_strike_price(symbol:str) -> float:
-    return 300
+    return realtime_quote.get_realtime_quote_price(symbol) * (1 + __get_stock_miu(symbol))
 
 def get_contract_number_of_option(symbol:str) -> int:
     return 1
+
+
+def __get_stock_miu(symbol:str):
+    if symbol.upper() == "SPY":
+        return 0.13543/100
+    elif symbol.upper() == "QQQ":
+        return 0.1713/100
+    else:
+        raise Exception("Unsupported symbol:" + symbol)

@@ -3,3 +3,4 @@ pip install html-testRunner
 pip3 install tigeropen
 pip install BeautifulSoup4
 pip install --upgrade orjson
+pip install jproperties

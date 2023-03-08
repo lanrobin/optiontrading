@@ -10,7 +10,8 @@ import stock_base
 from stock_tiger import TigerStockClient
 
 SYMBOL = "QQQ"
-SANDBOX = True
+PROD_ENV = False
+DEBUG = True
 
 def get_stock_client(brokerName:str):
     if brokerName.casefold() == "TIGER".casefold():
@@ -27,8 +28,10 @@ def close_position_if_executed(client: stock_base.IStockClient, symbol:str) -> b
     positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
     if len(positions) < 1:
         # if there is no option expired this friday. We will try to open it.
-        succeeded = client.sell_stock_to_close(symbol)
-        logging.info("There must be some stocks, sell them to close, result:" + str(succeeded))
+
+        # sell all the stock first.
+        client.sell_all_stock_to_close(symbol=symbol)
+
         order_status = client.sell_put_option_to_open(symbol, stock_base.get_put_option_strike_price(symbol), stock_base.get_contract_number_of_option(symbol), this_friday)
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
         stock_base.save_positions_to_file(expiried_opt_str_this_friday, positions)
@@ -49,9 +52,11 @@ def close_position_if_executed(client: stock_base.IStockClient, symbol:str) -> b
     if len(diff) > 0:
         logging.error(f"Following options differs:{diff}")
         # if there are some option gone, there must be some stock here, sell it.
-        succeeded = client.sell_stock_to_close(symbol)
+        # sell all the stock first.
+        succeeded = client.sell_all_stock_to_close(symbol=symbol)
         logging.info("There must be some stocks, sell them to close, result:" + str(succeeded))
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
+        stock_base.save_positions_to_file(expiried_opt_str_this_friday, positions)
         env.send_email("期权仓位变化了，需要主关注。", "已经把股票卖掉了。")
 
 
@@ -66,9 +71,9 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
     ### STEP 2: If there is open options, sell them.
     logging.info(f"There are {len(positions)} contracts positions.")
-    if len(positions) > 0:
-       status = client.sell_position_to_close(positions)
-       logging.info(f"Sold {len(positions)} contracts positions returns:{str(status)}")
+    for p in positions:
+        client.buy_option_to_close(p.Id, p.OptionType, p.Quantity)
+        logging.info(f"Buy {p.Id} with {p.Quantity} contracts.")
     
     ### STEP 3: Sell options that expire in next Friday
     #stock_price = realtime_quote.get_realtime_quote_price(symbol)
@@ -96,12 +101,13 @@ def main():
     stockClient = get_stock_client("TIGER")
 
 
-    stockClient.initialize(sandbox=SANDBOX)
-    if not SANDBOX:
+    stockClient.initialize(prod_env=PROD_ENV)
+    if PROD_ENV:
         raise Exception ("It is prod Now.")
 
-    close_position_if_executed(stockClient, SYMBOL)
-    switch_position(stockClient, SYMBOL)
+    if DEBUG:
+        close_position_if_executed(stockClient, SYMBOL)
+        switch_position(stockClient, SYMBOL)
 
     start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.

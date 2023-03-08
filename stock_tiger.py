@@ -9,10 +9,18 @@ from tigeropen.tiger_open_config import TigerOpenClientConfig
 #from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.common.consts import SecurityType as tst
+from tigeropen.common.util.contract_utils import stock_contract, option_contract
+from tigeropen.common.util.order_utils import (market_order,        # 市价单
+                                            limit_order,         # 限价单
+                                            stop_order,          # 止损单
+                                            stop_limit_order,    # 限价止损单
+                                            trail_order,         # 移动止损单
+                                            order_leg)           # 附加订单
 
 import env
 import logging
 import realtime_quote
+from jproperties import Properties
 
 class TigerStockClient(IStockClient):
 
@@ -20,19 +28,29 @@ class TigerStockClient(IStockClient):
         super().__init__()
         self.TradeClient = None
         self.QuoteClient = None
+        self.AccountId = None
 
 
-    def initialize(self, sandbox:bool):
+    def initialize(self, prod_env:bool):
         config_path = ""
-        if sandbox:
+        if prod_env:
             config_path = f"{env.get_data_root_path()}/tigersandbox"
         else:
             config_path = f"{env.get_data_root_path()}/tigerprod"
+
+        configs = Properties()
+        with open(f"{config_path}/tiger_openapi_config.properties", 'rb') as read_prop:
+            configs.load(read_prop)
+
         
-        client_config = TigerOpenClientConfig(sandbox_debug=sandbox, props_path=config_path)
+        client_config = TigerOpenClientConfig(sandbox_debug=False, props_path=config_path)
         client_config.log_level = logging.DEBUG
         client_config.log_path = env.get_data_root_path() + "/log/tigerapi.log"
         client_config.timezone = "America/New_York"
+        client_config.tiger_id = configs["tiger_id"].data
+        client_config.account = configs["account"].data
+        client_config.private_key = configs["private_key_pk1"].data
+
         # 接口超时时间
         client_config.timeout = 15
         # 超时重试设置
@@ -41,6 +59,7 @@ class TigerStockClient(IStockClient):
         # 最多重试次数
         client_config.retry_max_tries = 5
         self.TradeClient = TradeClient(client_config)
+        self.AccountId = configs["account"].data
     
 
     def get_option_chain(self, symbol:str, expire_date_str:str, type:OptionType) -> List[StockOption]:
@@ -99,28 +118,70 @@ class TigerStockClient(IStockClient):
     
 
     def query_order(self, order_id:str) -> OrderStatus:
-        raise Exception("Not implemented.")
+        order = self.TradeClient.get_order(id = order_id)
+        return OrderStatus(id = order_id, error_id="0", error_msg="OK", order = order)
     
     
-    def buy_position_to_close(self, opt_position:list[StockPosition]) -> list[OrderStatus]:
-        logging.debug("buy_position_to_close called.")
-        return []
+    def buy_option_to_close(self, id:str, opt_type:OptionType, quantity:int) -> OrderStatus:
+        logging.info("buy_option_to_close called.")
+        contract = option_contract(identifier = id)
+
+        order = market_order(account = self.AccountId, contract = contract, action = "BUY", quantity=quantity)
+
+        self.TradeClient.place_order(order)
+
+        return OrderStatus(order.id, "0", "OK")
 
     
-    def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> list[OrderStatus]:
-        logging.debug("sell_position_to_open called.")
+    def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> OrderStatus:
+        logging.info("sell_position_to_open called.")
+        expiry_str = expired_date.strftime("%Y-%m-%d")
+        option_chains = self.get_option_chain(symbol = symbol, expire_date_str = expiry_str, type = OptionType.PUT)
+        target_option = None
+        for oc in reversed(option_chains):
+            if oc.Strike < strike:
+                target_option = oc
+                break
+        if target_option == None:
+            raise Exception("Unable find suitable for symbol:" + symbol +" at strike:" + str(strike) +" in expiry:" + expiry_str)
+        id = target_option.Id[0:len(symbol)] + "  " + target_option.Id[len(symbol):]
+
+        contract = option_contract(identifier = id)
+
+        order = market_order(account = self.AccountId, contract = contract, action = "SELL", quantity=quantity)
+
+        self.TradeClient.place_order(order)
+
+        return OrderStatus(order.id, "0", "OK")
+    
+    
+    def sell_position_to_close(self, opt_position:StockPosition) -> OrderStatus:
+        logging.info("sell_position_to_close called.")
         return []
     
+    def sell_stock_to_close(self, symbol:str, quantity:int) -> OrderStatus:
+        contract = stock_contract(symbol=symbol, currency='USD')
+        order = market_order(account = self.AccountId, contract = contract, action="SELL",quantity = quantity)
+        self.TradeClient.place_order(order)
+        return OrderStatus(id = order.id, error_id="0", error_msg="OK", order = order)
+
     
-    def sell_position_to_close(self, opt_position:list[StockPosition]) -> list[OrderStatus]:
-        logging.debug("sell_position_to_close called.")
-        return []
-    
-    def sell_stock_to_close(self, symbol:str) -> list[OrderStatus]:
-        logging.debug("sell_stock_to_close called.")
-        return []
-    
-    def get_option_position(self, optMarket: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> list[OrderStatus]:
+    def sell_all_stock_to_close(self, symbol:str) -> OrderStatus:
+        stock_position = self.get_position(market = OrderMarket.US, security_type=SecurityType.STK, symbol=symbol)
+        result = None
+        if len(stock_position) == 0:
+            logging.info("No position for symbol:" + symbol)
+            return OrderStatus("", "", "", None)
+        elif len(stock_position) == 1:
+            quantity = stock_position[0].Quantity
+            succeeded = self.sell_stock_to_close(symbol = symbol, quantity=quantity)
+            logging.info("There must be some stocks, sell them to close, result:" + str(succeeded))
+            return succeeded
+        else:
+            logging.error("Incorrect position for symbol:" + symbol)
+            raise Exception("Incorrect position for symbol:" + symbol +", count:" + str(len(stock_position)))
+
+    def get_option_position(self, optMarket: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> OrderStatus:
         put_call = ""
         if optionType == OptionType.CALL:
             put_call = "CALL"
