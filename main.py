@@ -172,7 +172,7 @@ def main():
     
     date = pd.Timestamp.now()
     date_str = date.strftime("%Y-%m-%d")
-    logging.info("Program launching.")
+    logging.info(f"Program launching with G_target_symbol:{G_target_symbol}, G_broker_name:{G_broker_name}, G_debug_main_method:{G_debug_main_method}, G_prod_env:{G_prod_env}")
     stockClient = get_stock_client(G_broker_name)
 
 
