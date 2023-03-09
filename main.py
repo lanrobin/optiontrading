@@ -19,7 +19,7 @@ def get_stock_client(brokerName:str):
     else:
         raise Exception("Unknown broker:" + brokerName)
 
-def close_position_if_executed(client: stock_base.IStockClient, symbol:str) -> bool:
+def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
     this_friday = market_date_utils.get_next_nth_friday(datetime.datetime.now(), 0)
     expiried_opt_str_this_friday = this_friday.strftime("%Y-%m-%d")
@@ -108,7 +108,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
     strike = stock_base.get_put_option_strike_price(symbol)
     contracts = stock_base.get_contract_number_of_option(symbol)
-    
+
     status = client.sell_put_option_to_open(symbol, strike, contracts, next_friday)
     logging.info(f"Sold {len(positions)} contracts that expire at {next_friday} positions returns:{str(status)}")
 
@@ -134,7 +134,7 @@ def main():
         raise Exception ("It is prod Now.")
 
     if DEBUG:
-        close_position_if_executed(stockClient, SYMBOL)
+        maintain_position(stockClient, SYMBOL)
         switch_position(stockClient, SYMBOL)
 
     start_email_sent = False
@@ -167,7 +167,7 @@ def main():
                 break
             else:
                 logging.info("Market is open, we need to monitor the position.")
-                succeeded = close_position_if_executed(stockClient, SYMBOL)
+                succeeded = maintain_position(stockClient, SYMBOL)
                 logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
 
         time.sleep(60) # sleep for 60 seconds and 
