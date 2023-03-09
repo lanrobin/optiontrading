@@ -210,7 +210,7 @@ class TigerStockClient(IStockClient):
     
     def sell_position_to_close(self, opt_position:StockPosition) -> OrderStatus:
         logging.info("sell_position_to_close called.")
-        return []
+        raise Exception("Not implemented.")
     
     def sell_stock_to_close(self, symbol:str, quantity:int) -> OrderStatus:
         contract = stock_contract(symbol=symbol, currency='USD')
@@ -224,14 +224,14 @@ class TigerStockClient(IStockClient):
         result = None
         if len(stock_position) == 0:
             logging.info("No position for symbol:" + symbol)
-            return OrderStatus("", "", "", None)
+            return TigerOrderStatus(order = None)
         elif len(stock_position) == 1:
             quantity = stock_position[0].Quantity
             succeeded = self.sell_stock_to_close(symbol = symbol, quantity=quantity)
-            logging.info("There must be some stocks, sell them to close, result:" + str(succeeded))
+            logging.info(f"Sell {quantity} of {symbol} to close, result:{succeeded}")
             return succeeded
         else:
-            logging.error("Incorrect position for symbol:" + symbol)
+            logging.error(f"Incorrect number of position:{len(stock_position)} for symbol:{symbol}")
             raise Exception("Incorrect position for symbol:" + symbol +", count:" + str(len(stock_position)))
 
     def get_option_position(self, optMarket: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> List[StockPosition]:
@@ -252,13 +252,16 @@ class TigerStockClient(IStockClient):
         expiry_str = expiry.strftime("%Y%m%d")
         ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, expiry = expiry_str)
         raw_position = self.__tiger_position_converter(ps)
-        return [r for r in raw_position if r.Expiry == expiry_str]
+        return [r for r in raw_position if r.Expiry == expiry_str and r.Symbol == symbol and r.OptionType == optionType]
     
-    def __convert_security_type(self, tigerType: tst) -> SecurityType:
-        if tst.OPT == tigerType:
+    def __convert_security_type(self, tigerType: str) -> SecurityType:
+        strTigerType = tst.__dict__[tigerType]
+        if tst.OPT == strTigerType:
             return SecurityType.OPT
-        elif tst.STK == tigerType:
+        elif tst.STK == strTigerType:
             return SecurityType.STK
+        else:
+            raise Exception(f"Unsupported security type:{tigerType}")
 
     def __get_option_type(self, put_call:str) -> OptionType:
         if put_call is None:
