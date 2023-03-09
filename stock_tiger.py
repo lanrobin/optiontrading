@@ -172,7 +172,7 @@ class TigerStockClient(IStockClient):
 
     def query_order(self, order_id:str) -> OrderStatus:
         order = self.TradeClient.get_order(id = order_id)
-        return OrderStatus(id = order_id, error_id="0", error_msg="OK", order = order)
+        return TigerOrderStatus(order = order)
     
     
     def buy_option_to_close(self, id:str, opt_type:OptionType, quantity:int) -> OrderStatus:
@@ -183,7 +183,7 @@ class TigerStockClient(IStockClient):
 
         self.TradeClient.place_order(order)
 
-        return OrderStatus(order.id, "0", "OK", order)
+        return TigerOrderStatus(order = order)
 
     
     def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> OrderStatus:
@@ -205,7 +205,7 @@ class TigerStockClient(IStockClient):
 
         self.TradeClient.place_order(order)
 
-        return OrderStatus(order.id, "0", "OK", order)
+        return TigerOrderStatus(order = order)
     
     
     def sell_position_to_close(self, opt_position:StockPosition) -> OrderStatus:
@@ -216,7 +216,7 @@ class TigerStockClient(IStockClient):
         contract = stock_contract(symbol=symbol, currency='USD')
         order = market_order(account = self.AccountId, contract = contract, action="SELL",quantity = quantity)
         self.TradeClient.place_order(order)
-        return OrderStatus(id = order.id, error_id="0", error_msg="OK", order = order)
+        return TigerOrderStatus(order = order)
 
     
     def sell_all_stock_to_close(self, symbol:str) -> OrderStatus:
