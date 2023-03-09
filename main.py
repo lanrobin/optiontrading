@@ -9,6 +9,7 @@ import realtime_quote
 import stock_base
 from stock_tiger import TigerStockClient
 import sys, getopt
+import math
 
 SWITCH_MINUTE_BEFORE_MARKET_CLOSE = 3
 __EMAIL_MAX_COUNT = 5
@@ -43,7 +44,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
         current_option_contract = len(positions)
         logging.info(f"Expect {expected_option_contract} and current {current_option_contract}")
 
-        if len(positions) < expected_option_contract:
+        if len(positions) < 1 or abs(positions[0].Quantity) < expected_option_contract:
             sell_option_contract = expected_option_contract - current_option_contract
             logging.info(f"We need to sell {sell_option_contract} options to fill up the position.")
 
@@ -123,7 +124,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
         total_bought_options = 0
         for p in positions:
             status = client.buy_option_to_close(p.Id, p.OptionType, -p.Quantity)
-            total_bought_options += -p.Quantity
+            total_bought_options += abs(p.Quantity)
             logging.info(f"Buy {p.Id} with {p.Quantity} contracts returns {status}")
         
         ### STEP 3: Sell options that expire in next Friday
@@ -132,14 +133,23 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
         strike = stock_base.get_put_option_strike_price(symbol)
         contracts = stock_base.get_contract_number_of_option(symbol)
-
-        status = client.sell_put_option_to_open(symbol, strike, contracts, next_friday)
-        logging.info(f"Sold {len(positions)} contracts that expire at {next_friday} positions returns:{str(status)}")
+        
+        sold_contract_number = 0
+        next_friday_positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, next_friday)
+        logging.info(f"There are {len(next_friday_positions)} position for {symbol} on expiry {expiried_opt_str_next_friday}")
+        if len(next_friday_positions) > 1:
+            raise Exception(f"There are more then 1 positions for single security, size:{len(next_friday_positions)}")
+        if len(next_friday_positions) < 1 or abs(next_friday_positions[0].Quantity) < contracts:
+            sold_contract_number = contracts if len(next_friday_positions) < 1 else contracts - abs(next_friday_positions[0].Quantity)
+            status = client.sell_put_option_to_open(symbol, strike, sold_contract_number, next_friday)
+            logging.info(f"Sold {sold_contract_number} contracts that expire at {next_friday} positions returns:{str(status)}")
+        else:
+            logging.warn("Already had enough position for {symbol} that expire at {next_friday}")
 
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, next_friday)
         stock_base.save_positions_to_file(expiried_opt_str_next_friday, positions)
-
-        env.send_email("调仓完成", f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{contracts}手{expiried_opt_str_next_friday}到期的期权。时间：" + market_date_utils.datetime_str(datetime.datetime.now()))
+        email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
+        env.send_email("调仓完成", email_msg)
 
         logging.info("Switch position finished.")
 
