@@ -17,7 +17,10 @@ def get_data_root_path():
     if platform.system().lower() == 'windows':
         path = "D:\\stock"
     elif platform.system().lower() == 'linux':
-        path = "/home/lan/s"
+        if 'microsoft-standard' in platform.uname().release:
+            path = "/home/lan/s"
+        else:
+            path = "/datadrive/stock"
     else:
         path = "/datadrive/stock"
     # Ensure the folder exists.
