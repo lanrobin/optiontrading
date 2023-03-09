@@ -235,12 +235,7 @@ class TigerStockClient(IStockClient):
             raise Exception("Incorrect position for symbol:" + symbol +", count:" + str(len(stock_position)))
 
     def get_option_position(self, optMarket: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> List[StockPosition]:
-        put_call = ""
-        if optionType == OptionType.CALL:
-            put_call = "CALL"
-        elif optionType == OptionType.PUT:
-            put_call = "PUT"
-        else:
+        if optionType != OptionType.CALL and optionType != OptionType.PUT:
             raise Exception("Unsupported OptionType:" + str(optionType))
         
         tigerMarketType = Market.US

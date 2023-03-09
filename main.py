@@ -8,18 +8,18 @@ import env
 import realtime_quote
 import stock_base
 from stock_tiger import TigerStockClient
-
-SYMBOL = "QQQ"
-BROKER_NAME = "TIGER"
-PROD_ENV = False
-DEBUG = False
+import sys, getopt
 
 SWITCH_MINUTE_BEFORE_MARKET_CLOSE = 3
-
-__maintain_positoin_error_count = 0
-__switch_position_error_count = 0
-
 __EMAIL_MAX_COUNT = 5
+
+G_maintain_position_error_count = 0
+G_switch_position_error_count = 0
+G_target_symbol = "QQQ"
+G_broker_name = "TIGER"
+G_debug_main_method = True
+G_prod_env = False
+
 
 def get_stock_client(brokerName:str):
     if brokerName.casefold() == "TIGER".casefold():
@@ -28,6 +28,8 @@ def get_stock_client(brokerName:str):
         raise Exception("Unknown broker:" + brokerName)
 
 def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
+
+    global G_maintain_position_error_count
 
     try:
         logging.debug("Begin maintain position.")
@@ -90,17 +92,18 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             stock_base.save_positions_to_file(expiried_opt_str_this_friday, positions)
             env.send_email("期权仓位变化了，需要主关注。", "已经把股票卖掉了。")
 
-        __maintain_positoin_error_count = 0
+        G_maintain_position_error_count = 0
     except Exception as e:
-        __maintain_positoin_error_count += 1
-        err_msg = f"maintain_position {__maintain_positoin_error_count}th error:{type(e)}:{e}"
+        G_maintain_position_error_count += 1
+        err_msg = f"maintain_position {G_maintain_position_error_count}th error:{type(e)}:{e}"
         logging.error(err_msg)
-        if __maintain_positoin_error_count < __EMAIL_MAX_COUNT or __maintain_positoin_error_count % 30 == 0:
+        if G_maintain_position_error_count < __EMAIL_MAX_COUNT or G_maintain_position_error_count % 30 == 0:
             env.send_email("期权交易出错了", f"错误是:{err_msg}, 时间：{market_date_utils.datetime_str(datetime.datetime.now())}")
 
 
 
 def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
+    global G_switch_position_error_count
     try:
         logging.debug("Begin switch position.")
         # env.send_email("开始调仓了", "成功了:" + market_date_utils.datetime_str(datetime.datetime.now()))
@@ -139,31 +142,48 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
         logging.info("Switch position finished.")
 
         # recovered.
-        __switch_position_error_count = 0
+        G_switch_position_error_count = 0
         return True
     except Exception as e:
-        __switch_position_error_count += 1
-        err_msg = f"switch_position {__switch_position_error_count}th error:{type(e)}:{e}"
+        G_switch_position_error_count += 1
+        err_msg = f"switch_position {G_switch_position_error_count}th error:{type(e)}:{e}"
         logging.error(err_msg)
-        if __switch_position_error_count < __EMAIL_MAX_COUNT or __switch_position_error_count % 30 == 0:
+        if G_switch_position_error_count < __EMAIL_MAX_COUNT or G_switch_position_error_count % 30 == 0:
             env.send_email("期权交易出错了", f"错误是:{err_msg}, 时间：{market_date_utils.datetime_str(datetime.datetime.now())}")
 
 def main():
+    global G_target_symbol
+    global G_broker_name
+    global G_debug_main_method
+    global G_prod_env
+    opts, _ = getopt.getopt(sys.argv[1:], shortopts="s:b:d:e:", longopts=["symbol", "broker", "debug", "env"])
+
+    for opt, value in opts:
+        if opt in ("-s", "-symbol"):
+            G_target_symbol = value
+        elif opt in ("-b", "-broker"):
+            G_broker_name = value
+        elif opt in ("-d", "-debug"):
+            G_debug_main_method = True if "TRUE".casefold() == value.casefold() else False
+        elif opt in ("-e", "-env"):
+            G_prod_env = True if "PROD".casefold() == value.casefold() else False
+
     logging_util.setup_logging("option_traiding")
     
     date = pd.Timestamp.now()
     date_str = date.strftime("%Y-%m-%d")
     logging.info("Program launching.")
-    stockClient = get_stock_client(BROKER_NAME)
+    stockClient = get_stock_client(G_broker_name)
 
 
-    stockClient.initialize(prod_env=PROD_ENV)
-    if PROD_ENV:
+    stockClient.initialize(prod_env=G_prod_env)
+    if G_prod_env:
+        logging.warn("It is in prod env.")
         raise Exception ("It is prod Now.")
 
-    if DEBUG:
-        maintain_position(stockClient, SYMBOL)
-        switch_position(stockClient, SYMBOL)
+    if G_debug_main_method:
+        maintain_position(stockClient, G_target_symbol)
+        switch_position(stockClient, G_target_symbol)
 
     start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.
@@ -190,12 +210,12 @@ def main():
 
             if market_date_utils.is_date_week_end(date_str) and delta_to_close < datetime.timedelta(minutes = SWITCH_MINUTE_BEFORE_MARKET_CLOSE):
                 logging.info("It is end of week today. We need switch the position.")
-                succeeded = switch_position(stockClient, SYMBOL)
+                succeeded = switch_position(stockClient, G_target_symbol)
                 logging.info("switch result:" + str(succeeded) +", job done.")
                 break
             else:
                 logging.info("Market is open, we need to monitor the position.")
-                succeeded = maintain_position(stockClient, SYMBOL)
+                succeeded = maintain_position(stockClient, G_target_symbol)
                 logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
 
         time.sleep(55) # sleep for 55 seconds and 
