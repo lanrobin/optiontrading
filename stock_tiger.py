@@ -16,8 +16,7 @@ from tigeropen.common.util.order_utils import (market_order,        # 市价单
                                             stop_order,          # 止损单
                                             stop_limit_order,    # 限价止损单
                                             trail_order,         # 移动止损单
-                                            order_leg,
-                                            market_order_with_legs)           # 附加订单
+                                            order_leg)           # 附加订单
 
 import env
 import logging

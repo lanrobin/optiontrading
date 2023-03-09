@@ -234,7 +234,7 @@ def get_put_option_strike_price(symbol:str) -> float:
     return realtime_quote.get_realtime_quote_price(symbol) * (1 + __get_stock_miu(symbol))
 
 def get_contract_number_of_option(symbol:str) -> int:
-    return 1
+    return 2
 
 
 def __get_stock_miu(symbol:str):

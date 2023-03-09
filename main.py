@@ -59,7 +59,8 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             today = pd.Timestamp.now()
             today_str = today.strftime("%Y-%m-%d")
             ########----------------------------------------
-            if not market_date_utils.is_date_week_end(date_str=today_str):
+            ss = env.get_option_strategy_setting()
+            if not market_date_utils.is_date_week_end(date_str=today_str) and ss.BackFillAfterSold:
                 logging.info(f"Will sell {sell_option_contract} options on {symbol} that expire at {expiried_opt_str_this_friday} on strike:{strike_price}")
                 order_status = client.sell_put_option_to_open(symbol, strike_price, sell_option_contract, this_friday)
                 logging.info(f"Option sold return:{order_status}")

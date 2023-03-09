@@ -72,3 +72,19 @@ def send_email(subject, content):
         logging.error(innerE)
 
 GLOBAL_SETTING = __get_settings()
+
+
+class OptionStrategySettings:
+    def __init__(self, BackFillAfterSold:bool) -> None:
+        self.BackFillAfterSold = BackFillAfterSold
+
+
+def get_option_strategy_setting():
+    settingPath = get_data_root_path() +"/OptionStrategySettings.json"
+    jsonStr = ""
+    with open(settingPath, "r") as f:
+        jsonStr = re.sub(r'\s+', '', f.read())
+    
+    j = json.loads(jsonStr)
+    s = OptionStrategySettings(**j)
+    return s
