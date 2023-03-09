@@ -16,7 +16,8 @@ from tigeropen.common.util.order_utils import (market_order,        # 市价单
                                             stop_order,          # 止损单
                                             stop_limit_order,    # 限价止损单
                                             trail_order,         # 移动止损单
-                                            order_leg)           # 附加订单
+                                            order_leg,
+                                            market_order_with_legs)           # 附加订单
 
 import env
 import logging
@@ -248,6 +249,41 @@ class TigerStockClient(IStockClient):
         ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, expiry = expiry_str)
         raw_position = self.__tiger_position_converter(ps)
         return [r for r in raw_position if r.Expiry == expiry_str and r.Symbol == symbol and r.OptionType == optionType]
+    
+    def sell_option_with_protection_to_open(self, symbol:str, opt_type: OptionType,strike:float, quantity:int, expired_date:date, protect_times:float) -> OrderStatus:
+        logging.info("sell_position_to_open called.")
+        expiry_str = expired_date.strftime("%Y-%m-%d")
+        option_chains = self.get_option_chain(symbol = symbol, expire_date_str = expiry_str, type = opt_type)
+        target_option = None
+
+        # for the put, we will sell the first option's strike greater than the strike price.
+        if opt_type == OptionType.PUT:
+            for oc in reversed(option_chains):
+                target_option = oc
+                if oc.Strike < strike:
+                    break
+        # for the call, we sell the last option's strike that is less than the strike price.
+        elif opt_type == OptionType.CALL:
+            for oc in option_chains:
+                target_option = oc
+                if oc.Strike > strike:
+                    break
+
+        if target_option == None:
+            raise Exception("Unable find suitable for symbol:" + symbol +" at strike:" + str(strike) +" in expiry:" + expiry_str)
+        id = target_option.Id[0:len(symbol)] + "  " + target_option.Id[len(symbol):]
+
+        contract = option_contract(identifier = id)
+
+        loss_cut_order = order_leg(leg_type="LOSS", price = target_option.Ask * protect_times, time_in_force='GTC', outside_rth=False)
+        order = market_order(account = self.AccountId, contract = contract, action = "SELL", quantity=quantity)
+
+        # since market_order didn't provide interface to set order_legs, we just do it hackly.
+        order.order_legs = [loss_cut_order]
+
+        self.TradeClient.place_order(order)
+
+        return TigerOrderStatus(order = order)
     
     def __convert_security_type(self, tigerType: str) -> SecurityType:
         strTigerType = tst.__dict__[tigerType]

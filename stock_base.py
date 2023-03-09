@@ -193,6 +193,10 @@ class IStockClient(abc.ABC):
     @abc.abstractmethod
     def get_option_position(self, market: OrderMarket, symbol:str, optionType:OptionType, expiry:date) -> List[StockPosition]:
         '''Query an self.'''
+    
+    @abc.abstractmethod
+    def sell_option_with_protection_to_open(self, symbol:str, opt_type: OptionType,strike:float, quantity:int, expired_date:date, protect_times:float) -> OrderStatus:
+        '''Query an self.'''
         
 def get_option_type_from_str(opt_type:str) -> OptionType:
     if opt_type.casefold() == "PUT".casefold():

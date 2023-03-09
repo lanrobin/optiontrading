@@ -12,6 +12,7 @@ import sys, getopt
 
 SWITCH_MINUTE_BEFORE_MARKET_CLOSE = 3
 __EMAIL_MAX_COUNT = 5
+PROTECT_TIMES = 4
 
 G_maintain_position_error_count = 0
 G_switch_position_error_count = 0
