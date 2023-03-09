@@ -9,6 +9,7 @@ from tigeropen.tiger_open_config import TigerOpenClientConfig
 #from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.common.consts import SecurityType as tst
+from tigeropen.common.consts import OrderStatus as tos
 from tigeropen.common.util.contract_utils import stock_contract, option_contract
 from tigeropen.common.util.order_utils import (market_order,        # 市价单
                                             limit_order,         # 限价单
@@ -21,6 +22,50 @@ import env
 import logging
 import realtime_quote
 from jproperties import Properties
+
+
+
+class TigerOrderStatus(OrderStatus):
+    def __init__(self, order) -> None:
+        super().__init__(order)
+
+    def get_order_status(self) -> OrderStatusType:
+        if self.brokerOrder is None:
+            return OrderStatusType.UNKNOWN
+        elif self.brokerOrder.status == tos.EXPIRED:
+            return OrderStatusType.EXPIRED
+        elif self.brokerOrder.status == tos.NEW:
+            return OrderStatusType.NEW
+        elif self.brokerOrder.status == tos.CANCELLED:
+            return OrderStatusType.CANCELLED
+        elif self.brokerOrder.status == tos.HELD:
+            return OrderStatusType.HELD
+        elif self.brokerOrder.status == tos.PARTIALLY_FILLED:
+            return OrderStatusType.PARTIALLY_FILLED
+        elif self.brokerOrder.status == tos.FILLED:
+            return OrderStatusType.FILLED
+        elif self.brokerOrder.status == tos.REJECTED:
+            return OrderStatusType.REJECTED
+        else:
+            raise Exception("Unknown order status:" + str(self.brokerOrder.status))
+
+    def get_order_id(self) -> str:
+        return str(self.brokerOrder.id) if self.brokerOrder is not None else ""
+
+    def get_order_quatity(self) -> int:
+        return self.brokerOrder.quantity if self.brokerOrder is not None else 0
+
+    def get_order_filled(self) -> int:
+        return self.brokerOrder.filled if self.brokerOrder is not None else 0
+
+    def get_order_remaining(self) -> str:
+        return self.brokerOrder.remaining if self.brokerOrder is not None else 0
+    
+    def __str__(self) -> str:
+        if self.brokerOrder is None:
+            return "Invalid OrderStatus"
+        else:
+            return f"OrderStatus, id:{self.get_order_id()},status:{self.get_order_status()}"
 
 class TigerStockClient(IStockClient):
 

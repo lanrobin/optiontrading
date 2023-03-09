@@ -50,11 +50,14 @@ class OrderMarket(Enum):
     US = 0
 
 class OrderStatusType(Enum):
-    NEW = 0
-    PARTIAL_FILLED = 1
-    FILLED = 2
-    CANCELLED = 3
-    EXPIRED = 4
+    EXPIRED = 0
+    NEW = 1
+    CANCELLED = 2
+    HELD = 3
+    PARTIALLY_FILLED = 4
+    FILLED = 5
+    REJECTED = 6
+    UNKNOWN = -1
 
 class Order:
     def __init__(self, id:str,
@@ -113,16 +116,29 @@ class OrderOperationResult:
         self.ErrorId = error_id
         self.ErrorMsg = error_msg
 
-class OrderStatus():
-    def __init__(self, id:str,
-                 error_id:str,
-                 error_msg:str,
-                 order
-                 ) -> None:
-        self.Id = id
-        self.ErrorId = error_id
-        self.ErrorMsg = error_msg
+class OrderStatus(abc.ABC):
+    def __init__(self,order) -> None:
         self.brokerOrder = order
+
+    @abc.abstractmethod
+    def get_order_status(self) -> OrderStatusType:
+        '''Get order status.'''
+
+    @abc.abstractmethod
+    def get_order_id(self) -> str:
+        '''Get order id.'''
+
+    @abc.abstractmethod
+    def get_order_quatity(self) -> int:
+        '''pass'''
+
+    @abc.abstractmethod
+    def get_order_filled(self) -> int:
+        '''pass'''
+
+    @abc.abstractmethod
+    def get_order_remaining(self) -> int:
+        '''pass'''
 
 class IStockClient(abc.ABC):
 
