@@ -10,8 +10,11 @@ import stock_base
 from stock_tiger import TigerStockClient
 
 SYMBOL = "QQQ"
+BROKER_NAME = "TIGER"
 PROD_ENV = False
 DEBUG = False
+
+SWITCH_MINUTE_BEFORE_MARKET_CLOSE = 3
 
 __maintain_positoin_error_count = 0
 __switch_position_error_count = 0
@@ -151,7 +154,7 @@ def main():
     date = pd.Timestamp.now()
     date_str = date.strftime("%Y-%m-%d")
     logging.info("Program launching.")
-    stockClient = get_stock_client("TIGER")
+    stockClient = get_stock_client(BROKER_NAME)
 
 
     stockClient.initialize(prod_env=PROD_ENV)
@@ -177,15 +180,15 @@ def main():
     while current < market_close_time:
         delta_to_open = market_open_time - current
         delta_to_close = market_close_time - current
-        if delta_to_open > datetime.timedelta(minutes=1):
+        if delta_to_open > datetime.timedelta(minutes = 1):
             logging.warning("Too early now, let's sleep for a while:" + str(delta_to_open))
-            time.sleep(delta_to_open.total_seconds() - 1)
+            time.sleep(delta_to_open.total_seconds() - 55) # We will sleep 55 second at end of process.
         elif current > market_open_time:
             if not start_email_sent:
                 env.send_email("期权交易开始了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
                 start_email_sent = True
 
-            if market_date_utils.is_date_week_end(date_str) and delta_to_close < datetime.timedelta(minutes = 5):
+            if market_date_utils.is_date_week_end(date_str) and delta_to_close < datetime.timedelta(minutes = SWITCH_MINUTE_BEFORE_MARKET_CLOSE):
                 logging.info("It is end of week today. We need switch the position.")
                 succeeded = switch_position(stockClient, SYMBOL)
                 logging.info("switch result:" + str(succeeded) +", job done.")
@@ -195,7 +198,7 @@ def main():
                 succeeded = maintain_position(stockClient, SYMBOL)
                 logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
 
-        time.sleep(60) # sleep for 60 seconds and 
+        time.sleep(55) # sleep for 55 seconds and 
         current = datetime.datetime.now()
 
     logging.info("Market closed.")
