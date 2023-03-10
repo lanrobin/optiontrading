@@ -8,6 +8,7 @@ import env
 import logging
 from datetime import date
 import realtime_quote
+import os.path
 
 class OptionType(Enum):
     NONE = 0
@@ -219,8 +220,11 @@ def save_positions_to_file(expired_str:str, account:str, positions:List[StockPos
     return True
 
 def load_positions_from_file(expired_str:str, account:str) -> List[StockPosition]:
-    filename = get_positions_local_file_name(expired_str, account)
     objs = []
+    filename = get_positions_local_file_name(expired_str, account)
+    if not os.path.isfile(filename):
+        return objs
+    
     with open(filename, 'rb') as f:
         objs = orjson.loads(f.read())
     positions = []
