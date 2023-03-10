@@ -144,7 +144,7 @@ class OrderStatus(abc.ABC):
 class IStockClient(abc.ABC):
 
     @abc.abstractmethod
-    def initialize(self, prod_env:bool):
+    def initialize(self, prod_env:bool, account:str, symbol:str):
         '''Intialize the client.'''
     
     @abc.abstractmethod
@@ -212,16 +212,16 @@ def get_option_type_from_str(opt_type:str) -> OptionType:
         return OptionType.NONE
     
 
-def save_positions_to_file(expired_str:str, account:str, positions:List[StockPosition]) -> bool:
-    filename = get_positions_local_file_name(expired_str, account)
+def save_positions_to_file(expired_str:str, account:str, symbol:str, positions:List[StockPosition]) -> bool:
+    filename = get_positions_local_file_name(expired_str, account, symbol)
     with open(filename, 'wb') as f:
         json_str = orjson.dumps(positions,  default = lambda x: x.__dict__)
         f.write(json_str)
     return True
 
-def load_positions_from_file(expired_str:str, account:str) -> List[StockPosition]:
+def load_positions_from_file(expired_str:str, account:str, symbol:str) -> List[StockPosition]:
     objs = []
-    filename = get_positions_local_file_name(expired_str, account)
+    filename = get_positions_local_file_name(expired_str, account, symbol)
     if not os.path.isfile(filename):
         return objs
     
@@ -233,10 +233,10 @@ def load_positions_from_file(expired_str:str, account:str) -> List[StockPosition
     
     return positions
 
-def get_positions_local_file_name(expired_date_str:str, account:str) -> str:
+def get_positions_local_file_name(expired_date_str:str, account:str, symbol:str) -> str:
     path = f"{env.get_data_root_path()}/position/"
     ensure_path_exists(path)
-    return f"{path}/{expired_date_str}_{account}_opt.json"
+    return f"{path}/{expired_date_str}_{account}_{symbol}_opt.json"
 
 def get_put_option_strike_price(symbol:str) -> float:
     return realtime_quote.get_realtime_quote_price(symbol) * (1 + __get_stock_miu(symbol))
