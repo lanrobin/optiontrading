@@ -5,11 +5,9 @@ import logging
 import datetime
 import time
 import env
-import realtime_quote
 import stock_base
 from stock_tiger import TigerStockClient
 import sys, getopt
-import math
 
 SWITCH_MINUTE_BEFORE_MARKET_CLOSE = 3
 __EMAIL_MAX_COUNT = 5
@@ -74,7 +72,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
                 logging.warn(f"Today {today_str} is end of week, we skip sell {sell_option_contract} option and wait for switch.")
             
             positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
-            stock_base.save_positions_to_file(expiried_opt_str_this_friday, positions)
+            stock_base.save_positions_to_file(expiried_opt_str_this_friday, client.get_account_id(), positions)
             logging.warning(f"Sold {sell_option_contract} options expired this friday and now total:{len(positions)}.")
             return True
 
@@ -82,7 +80,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
         if len(loaded_positions) < 1:
             logging.info("There is no options expired this Friday locally, save the position from broker.")
-            stock_base.save_positions_to_file(expiried_opt_str_this_friday, positions)
+            stock_base.save_positions_to_file(expiried_opt_str_this_friday, client.get_account_id(), positions)
             return True
 
         logging.info(f"There are {len(positions)} options in the position and {len(loaded_positions)} options in the local disk.")
@@ -96,7 +94,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             succeeded = client.sell_all_stock_to_close(symbol=symbol)
             logging.info("There must be some stocks, sell them to close, result:" + str(succeeded))
             positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
-            stock_base.save_positions_to_file(expiried_opt_str_this_friday, positions)
+            stock_base.save_positions_to_file(expiried_opt_str_this_friday,  client.get_account_id(), positions)
             env.send_email("期权仓位变化了，需要主关注。", "已经把股票卖掉了。")
 
         G_maintain_position_error_count = 0
@@ -154,7 +152,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
             logging.warn("Already had enough position for {symbol} that expire at {next_friday}")
 
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, next_friday)
-        stock_base.save_positions_to_file(expiried_opt_str_next_friday, positions)
+        stock_base.save_positions_to_file(expiried_opt_str_next_friday,  client.get_account_id(), positions)
         email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
         logging.info(email_msg)
         env.send_email("调仓完成", email_msg)

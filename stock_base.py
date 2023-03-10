@@ -197,6 +197,10 @@ class IStockClient(abc.ABC):
     @abc.abstractmethod
     def sell_option_with_protection_to_open(self, symbol:str, opt_type: OptionType,strike:float, quantity:int, expired_date:date, protect_times:float) -> OrderStatus:
         '''Query an self.'''
+
+    @abc.abstractmethod
+    def get_account_id(self) -> str:
+        '''Get order id.'''
         
 def get_option_type_from_str(opt_type:str) -> OptionType:
     if opt_type.casefold() == "PUT".casefold():
@@ -207,8 +211,8 @@ def get_option_type_from_str(opt_type:str) -> OptionType:
         return OptionType.NONE
     
 
-def save_positions_to_file(expired_str:str, positions:List[StockPosition]) -> bool:
-    filename = get_positions_local_file_name(expired_str)
+def save_positions_to_file(expired_str:str, account:str, positions:List[StockPosition]) -> bool:
+    filename = get_positions_local_file_name(expired_str, account)
     with open(filename, 'wb') as f:
         json_str = orjson.dumps(positions,  default = lambda x: x.__dict__)
         f.write(json_str)
@@ -225,10 +229,10 @@ def load_positions_from_file(expired_str:str) -> List[StockPosition]:
     
     return positions
 
-def get_positions_local_file_name(expired_date_str:str) -> str:
+def get_positions_local_file_name(expired_date_str:str, account:str) -> str:
     path = f"{env.get_data_root_path()}/position/"
     ensure_path_exists(path)
-    return f"{path}/{expired_date_str}_opt.json"
+    return f"{path}/{expired_date_str}_{account}_opt.json"
 
 def get_put_option_strike_price(symbol:str) -> float:
     return realtime_quote.get_realtime_quote_price(symbol) * (1 + __get_stock_miu(symbol))

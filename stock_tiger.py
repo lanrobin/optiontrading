@@ -284,6 +284,9 @@ class TigerStockClient(IStockClient):
 
         return TigerOrderStatus(order = order)
     
+    def get_account_id(self) -> str:
+        return self.AccountId
+    
     def __convert_security_type(self, tigerType: str) -> SecurityType:
         strTigerType = tst.__dict__[tigerType]
         if tst.OPT == strTigerType:
