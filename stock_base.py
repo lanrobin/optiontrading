@@ -218,8 +218,8 @@ def save_positions_to_file(expired_str:str, account:str, positions:List[StockPos
         f.write(json_str)
     return True
 
-def load_positions_from_file(expired_str:str) -> List[StockPosition]:
-    filename = get_positions_local_file_name(expired_str)
+def load_positions_from_file(expired_str:str, account:str) -> List[StockPosition]:
+    filename = get_positions_local_file_name(expired_str, account)
     objs = []
     with open(filename, 'rb') as f:
         objs = orjson.loads(f.read())

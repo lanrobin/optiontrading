@@ -76,7 +76,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             logging.warning(f"Sold {sell_option_contract} options expired this friday and now total:{len(positions)}.")
             return True
 
-        loaded_positions = stock_base.load_positions_from_file(expiried_opt_str_this_friday)
+        loaded_positions = stock_base.load_positions_from_file(expiried_opt_str_this_friday, client.get_account_id())
 
         if len(loaded_positions) < 1:
             logging.info("There is no options expired this Friday locally, save the position from broker.")
