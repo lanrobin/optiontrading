@@ -144,12 +144,8 @@ class TigerStockClient(IStockClient):
         else:
             raise Exception("Unsupported security type:" + str(security_type))
         
-        tigerMarketType = Market.US
-        if market == OrderMarket.US:
-            tigerMarketType = Market.US
-        else:
-            raise Exception("Unsupported market type:" + str(tigerMarketType))
-        ps = self.TradeClient.get_positions(market = Market.US, sec_type=tigerSecurityType)
+        tigerMarketType = self.__get_market_type(market)
+        ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type=tigerSecurityType)
         all_items = self.__tiger_position_converter(ps)
         if(symbol is not None):
             return[p for p in all_items  if p.Symbol.casefold() == symbol.casefold()]
@@ -238,11 +234,7 @@ class TigerStockClient(IStockClient):
         if optionType != OptionType.CALL and optionType != OptionType.PUT:
             raise Exception("Unsupported OptionType:" + str(optionType))
         
-        tigerMarketType = Market.US
-        if optMarket == OrderMarket.US:
-            tigerMarketType = Market.US
-        else:
-            raise Exception("Unsupported market type:" + str(tigerMarketType))
+        tigerMarketType = self.__get_market_type(optMarket)
         
         expiry_str = expiry.strftime("%Y%m%d")
         ps = self.TradeClient.get_positions(market = tigerMarketType, sec_type = tst.OPT, expiry = expiry_str)
@@ -287,6 +279,22 @@ class TigerStockClient(IStockClient):
     def get_account_id(self) -> str:
         return self.AccountId
     
+    def get_open_option_orders(self, market: OrderMarket, symbol:str, opt_type: OptionType, expired_date:date) -> list:
+        tigerMarketType = self.__get_market_type(market)
+        orders = self.TradeClient.get_open_orders(account = self.AccountId, sec_type = tst.OPT, market=tigerMarketType, symbol=symbol)
+        target_orders = []
+        id_prefix = f"{symbol}  {expired_date.strftime('%Y%m%d')}"
+
+        if opt_type == OptionType.CALL:
+            id_prefix = id_prefix + "C"
+        elif opt_type == OptionType.PUT:
+            id_prefix = id_prefix + "P"
+
+        if orders != None and len(orders) > 0:
+            target_orders = [o for o in orders if o.contract.identifier.startswith(id_prefix)]
+
+        return target_orders
+    
     def __convert_security_type(self, tigerType: str) -> SecurityType:
         strTigerType = tst.__dict__[tigerType]
         if tst.OPT == strTigerType:
@@ -304,6 +312,15 @@ class TigerStockClient(IStockClient):
         if put_call.casefold() == "PUT".casefold():
             return OptionType.PUT
         return OptionType.NONE
+    
+    def __get_market_type(self, market: Market):
+        tigerMarketType = Market.US
+        if market == OrderMarket.US:
+            tigerMarketType = Market.US
+        else:
+            raise Exception("Unsupported market type:" + str(tigerMarketType))
+        
+        return tigerMarketType
         
     def __tiger_position_converter(self, ps:list) -> List[StockPosition]:
         positions = []

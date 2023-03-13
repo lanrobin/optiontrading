@@ -46,6 +46,14 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
         logging.info(f"Expect {expected_option_contract} and current {existing_contract_number}")
 
 
+        # check if there are open orders.
+        open_orders = client.get_open_option_orders(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
+        open_orders_quantity = 0
+
+        for o in open_orders:
+            open_orders_quantity += abs(o.)
+
+
         if existing_contract_number < expected_option_contract:
             sell_option_contract = expected_option_contract - existing_contract_number
             logging.info(f"We need to sell {sell_option_contract} options to fill up the position.")
