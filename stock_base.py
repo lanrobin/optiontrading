@@ -266,7 +266,8 @@ def get_put_option_strike_price(symbol: str) -> float:
 
 
 def get_contract_number_of_option(symbol: str) -> int:
-    return 2
+    ss = env.get_option_strategy_setting()
+    return ss.ExpectedOptionContractNumber
 
 
 def __get_stock_miu(symbol: str):

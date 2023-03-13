@@ -75,8 +75,9 @@ GLOBAL_SETTING = __get_settings()
 
 
 class OptionStrategySettings:
-    def __init__(self, BackFillAfterSold:bool) -> None:
+    def __init__(self, BackFillAfterSold:bool, ExpectedOptionContractNumber:int) -> None:
         self.BackFillAfterSold = BackFillAfterSold
+        self.ExpectedOptionContractNumber = ExpectedOptionContractNumber
 
 
 def get_option_strategy_setting():
