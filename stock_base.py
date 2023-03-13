@@ -54,6 +54,7 @@ class OrderTTL(Enum):
 
 
 class OrderMarket(Enum):
+    NONE = -1
     US = 0
 
 
@@ -78,7 +79,8 @@ class Order:
                  market: OrderMarket,
                  price: float,
                  quantity: int,
-                 sec_type: SecurityType
+                 sec_type: SecurityType,
+                 identifier: str
                  ) -> None:
         self.Id = id
         self.Symbol = symbol
@@ -90,6 +92,7 @@ class Order:
         self.Price = price
         self.Quantity = quantity
         self.SecurityType = sec_type
+        self.Identifier = identifier
 
 
 class StockPosition:

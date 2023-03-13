@@ -30,25 +30,7 @@ class TigerOrderStatus(OrderStatus):
         super().__init__(order)
 
     def get_order_status(self) -> OrderStatusType:
-        if self.brokerOrder is None:
-            return OrderStatusType.UNKNOWN
-        elif self.brokerOrder.status == tos.EXPIRED:
-            return OrderStatusType.EXPIRED
-        elif self.brokerOrder.status == tos.NEW:
-            return OrderStatusType.NEW
-        elif self.brokerOrder.status == tos.CANCELLED:
-            return OrderStatusType.CANCELLED
-        elif self.brokerOrder.status == tos.HELD:
-            return OrderStatusType.HELD
-        elif self.brokerOrder.status == tos.PARTIALLY_FILLED:
-            return OrderStatusType.PARTIALLY_FILLED
-        elif self.brokerOrder.status == tos.FILLED:
-            return OrderStatusType.FILLED
-        elif self.brokerOrder.status == tos.REJECTED:
-            return OrderStatusType.REJECTED
-        else:
-            raise Exception("Unknown order status:" + str(self.brokerOrder.status))
-
+        return TigerOrderStatus.convert_order_status(self.brokerOrder)
     def get_order_id(self) -> str:
         return str(self.brokerOrder.id) if self.brokerOrder is not None else ""
 
@@ -66,6 +48,26 @@ class TigerOrderStatus(OrderStatus):
             return "Invalid OrderStatus"
         else:
             return f"OrderStatus, id:{self.get_order_id()},status:{self.get_order_status()}"
+    @staticmethod
+    def convert_order_status(order) -> OrderStatusType:
+        if order is None:
+            return OrderStatusType.UNKNOWN
+        elif order.status == tos.EXPIRED:
+            return OrderStatusType.EXPIRED
+        elif order.status == tos.NEW:
+            return OrderStatusType.NEW
+        elif order.status == tos.CANCELLED:
+            return OrderStatusType.CANCELLED
+        elif order.status == tos.HELD:
+            return OrderStatusType.HELD
+        elif order.status == tos.PARTIALLY_FILLED:
+            return OrderStatusType.PARTIALLY_FILLED
+        elif order.status == tos.FILLED:
+            return OrderStatusType.FILLED
+        elif order.status == tos.REJECTED:
+            return OrderStatusType.REJECTED
+        else:
+            raise Exception("Unknown order status:" + str(order.status))
 
 class TigerStockClient(IStockClient):
 
@@ -193,7 +195,7 @@ class TigerStockClient(IStockClient):
                 break
         if target_option == None:
             raise Exception("Unable find suitable for symbol:" + symbol +" at strike:" + str(strike) +" in expiry:" + expiry_str)
-        id = target_option.Id[0:len(symbol)] + "  " + target_option.Id[len(symbol):]
+        id = target_option.Id[0:len(symbol)] + "   " + target_option.Id[len(symbol):]
 
         contract = option_contract(identifier = id)
 
@@ -262,7 +264,7 @@ class TigerStockClient(IStockClient):
 
         if target_option == None:
             raise Exception("Unable find suitable for symbol:" + symbol +" at strike:" + str(strike) +" in expiry:" + expiry_str)
-        id = target_option.Id[0:len(symbol)] + "  " + target_option.Id[len(symbol):]
+        id = target_option.Id[0:len(symbol)] + "   " + target_option.Id[len(symbol):]
 
         contract = option_contract(identifier = id)
 
@@ -281,9 +283,9 @@ class TigerStockClient(IStockClient):
     
     def get_open_option_orders(self, market: OrderMarket, symbol:str, opt_type: OptionType, expired_date:date) -> list:
         tigerMarketType = self.__get_market_type(market)
-        orders = self.TradeClient.get_open_orders(account = self.AccountId, sec_type = tst.OPT, market=tigerMarketType, symbol=symbol)
+        orders = self.TradeClient.get_open_orders(account = self.AccountId, sec_type = tst.OPT, market=tigerMarketType)
         target_orders = []
-        id_prefix = f"{symbol}  {expired_date.strftime('%Y%m%d')}"
+        id_prefix = f"{symbol}{expired_date.strftime('%y%m%d')}"
 
         if opt_type == OptionType.CALL:
             id_prefix = id_prefix + "C"
@@ -291,8 +293,8 @@ class TigerStockClient(IStockClient):
             id_prefix = id_prefix + "P"
 
         if orders != None and len(orders) > 0:
-            target_orders = [o for o in orders if o.contract.identifier.startswith(id_prefix)]
-
+            filterred_orders = [o for o in orders if o.contract.identifier.replace(" ", "").startswith(id_prefix)]
+            target_orders = self.__tiger_order_converter(filterred_orders)
         return target_orders
     
     def __convert_security_type(self, tigerType: str) -> SecurityType:
@@ -304,7 +306,8 @@ class TigerStockClient(IStockClient):
         else:
             raise Exception(f"Unsupported security type:{tigerType}")
 
-    def __get_option_type(self, put_call:str) -> OptionType:
+    @staticmethod
+    def __get_option_type(put_call:str) -> OptionType:
         if put_call is None:
             return OptionType.NONE
         if put_call.casefold() == "CALL".casefold():
@@ -313,16 +316,20 @@ class TigerStockClient(IStockClient):
             return OptionType.PUT
         return OptionType.NONE
     
-    def __get_market_type(self, market: Market):
-        tigerMarketType = Market.US
-        if market == OrderMarket.US:
+    @staticmethod
+    def __get_market_type(market: Market):
+
+        tigerMarketType = OrderMarket.NONE
+        if market is None:
+            tigerMarketType = OrderMarket.NONE
+        elif market == OrderMarket.US:
             tigerMarketType = Market.US
         else:
             raise Exception("Unsupported market type:" + str(tigerMarketType))
         
         return tigerMarketType
         
-    def __tiger_position_converter(self, ps:list) -> List[StockPosition]:
+    def __tiger_position_converter(self, ps:list) -> list:
         positions = []
         if ps is not None:
             for p in ps:
@@ -341,3 +348,22 @@ class TigerStockClient(IStockClient):
                                                Strike= p.contract.strike
                                                ))
         return positions
+    
+    def __tiger_order_converter(self, orders:list) -> list:
+        common_orders = []
+        if orders is not None:
+            for o in orders:
+                common_orders.append(Order(o.id,
+                                           o.contract.symbol,
+                                           TigerOrderStatus.convert_order_status(o),
+                                           o.action,
+                                           OrderOpenClose.CLOSE,
+                                           o.time_in_force,
+                                           self.__get_market_type(o.contract.market),
+                                           o.avg_fill_price,
+                                           o.quantity,
+                                           self.__convert_security_type(o.contract.sec_type),
+                                           o.contract.identifier
+                                           ))
+        
+        return common_orders

@@ -52,11 +52,14 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
         open_orders_quantity = 0
 
         for o in open_orders:
-            open_orders_quantity += abs(o.)
+            open_orders_quantity += abs(o.Quantity)
+
+        if open_orders_quantity > 0:
+            logging.warn(f"There are {open_orders_quantity} open orders for symbol:{symbol}  expires at {expiried_opt_str_this_friday}")
 
 
-        if existing_contract_number < expected_option_contract:
-            sell_option_contract = expected_option_contract - existing_contract_number
+        if existing_contract_number + open_orders_quantity< expected_option_contract:
+            sell_option_contract = expected_option_contract - existing_contract_number - open_orders_quantity
             logging.info(f"We need to sell {sell_option_contract} options to fill up the position.")
 
             # sell all the stock for this symbol first.
@@ -148,13 +151,24 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
         sold_contract_number = 0
         existing_contract_number = 0
         next_friday_positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, next_friday)
-        logging.info(f"There are {len(next_friday_positions)} position for {symbol} on expiry {expiried_opt_str_next_friday}")
+        logging.info(f"There are {len(next_friday_positions)} position for {symbol}  expires at {expiried_opt_str_next_friday}")
         if len(next_friday_positions) > 0:
             for nfp in next_friday_positions:
                 existing_contract_number += abs(nfp.Quantity)
+
+         # check if there are open orders.
+        open_orders = client.get_open_option_orders(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, next_friday)
+        open_orders_quantity = 0
+
+        for o in open_orders:
+            open_orders_quantity += abs(o.Quantity)
+
+        if open_orders_quantity > 0:
+            logging.warn(f"There are {open_orders_quantity} open orders for symbol:{symbol} expires at {expiried_opt_str_next_friday}.")
+
         
-        if existing_contract_number < contracts:
-            sold_contract_number = contracts - existing_contract_number
+        if existing_contract_number + open_orders_quantity < contracts:
+            sold_contract_number = contracts - existing_contract_number - open_orders_quantity
             status = client.sell_put_option_to_open(symbol, strike, sold_contract_number, next_friday)
             logging.info(f"Sold {sold_contract_number} contracts that expire at {next_friday} positions returns:{str(status)}")
         else:
