@@ -15,10 +15,11 @@ PROTECT_TIMES = 4
 
 G_maintain_position_error_count = 0
 G_switch_position_error_count = 0
-G_target_symbol = "QQQ"
+G_target_symbol = None
 G_broker_name = "TIGER"
 G_debug_main_method = True
 G_prod_env = False
+G_account = None
 
 
 def get_stock_client(brokerName:str):
@@ -80,15 +81,15 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
                 logging.warn(f"Today {today_str} is end of week, we skip sell {sell_option_contract} option and wait for switch.")
             
             positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
-            stock_base.save_positions_to_file(expiried_opt_str_this_friday, client.get_account_id(), positions)
+            stock_base.save_positions_to_file(expiried_opt_str_this_friday, client.get_account_id(), symbol, positions)
             logging.warning(f"Sold {sell_option_contract} options expired this friday and now total:{len(positions)}.")
             return True
 
-        loaded_positions = stock_base.load_positions_from_file(expiried_opt_str_this_friday, client.get_account_id())
+        loaded_positions = stock_base.load_positions_from_file(expiried_opt_str_this_friday, client.get_account_id(), symbol)
 
         if len(loaded_positions) < 1:
             logging.info("There is no options expired this Friday locally, save the position from broker.")
-            stock_base.save_positions_to_file(expiried_opt_str_this_friday, client.get_account_id(), positions)
+            stock_base.save_positions_to_file(expiried_opt_str_this_friday, client.get_account_id(), symbol, positions)
             return True
 
         logging.info(f"There are {len(positions)} options in the position and {len(loaded_positions)} options in the local disk.")
@@ -102,7 +103,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             succeeded = client.sell_all_stock_to_close(symbol=symbol)
             logging.info("There must be some stocks, sell them to close, result:" + str(succeeded))
             positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
-            stock_base.save_positions_to_file(expiried_opt_str_this_friday,  client.get_account_id(), positions)
+            stock_base.save_positions_to_file(expiried_opt_str_this_friday,  client.get_account_id(), symbol, positions)
             env.send_email("期权仓位变化了，需要主关注。", "已经把股票卖掉了。")
 
         G_maintain_position_error_count = 0
@@ -160,7 +161,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
             logging.warn("Already had enough position for {symbol} that expire at {next_friday}")
 
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, next_friday)
-        stock_base.save_positions_to_file(expiried_opt_str_next_friday,  client.get_account_id(), positions)
+        stock_base.save_positions_to_file(expiried_opt_str_next_friday,  client.get_account_id(), symbol, positions)
         email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
         logging.info(email_msg)
         env.send_email("调仓完成", email_msg)
@@ -182,19 +183,28 @@ def main():
     global G_broker_name
     global G_debug_main_method
     global G_prod_env
-    opts, _ = getopt.getopt(sys.argv[1:], shortopts="s:b:d:e:", longopts=["symbol", "broker", "debug", "env"])
+    global G_account
+    opts, _ = getopt.getopt(sys.argv[1:], shortopts="s:b:d:e:a:", longopts=["symbol=", "broker=", "debug=", "env=", "account="])
 
     for opt, value in opts:
-        if opt in ("-s", "-symbol"):
+        if opt in ("-s", "--symbol"):
             G_target_symbol = value
-        elif opt in ("-b", "-broker"):
+        elif opt in ("-b", "--broker"):
             G_broker_name = value
-        elif opt in ("-d", "-debug"):
+        elif opt in ("-d", "--debug"):
             G_debug_main_method = True if "TRUE".casefold() == value.casefold() else False
-        elif opt in ("-e", "-env"):
+        elif opt in ("-e", "--env"):
             G_prod_env = True if "PROD".casefold() == value.casefold() else False
+        elif opt in ("-a", "--account"):
+            G_account = value
 
-    logging_util.setup_logging("option_traiding")
+    if G_account == None:
+        raise Exception("No account provide!!")
+    
+    if G_target_symbol == None:
+        raise Exception("No symbol provide!!")
+
+    logging_util.setup_logging(f"{G_broker_name}_{G_account}_{G_target_symbol}_option_traiding")
     
     date = pd.Timestamp.now()
     date_str = date.strftime("%Y-%m-%d")
@@ -202,7 +212,7 @@ def main():
     stockClient = get_stock_client(G_broker_name)
 
 
-    stockClient.initialize(prod_env=G_prod_env)
+    stockClient.initialize(prod_env=G_prod_env, account=G_account, symbol=G_target_symbol)
     if G_prod_env:
         logging.warn("It is in prod env.")
         raise Exception ("It is prod Now.")

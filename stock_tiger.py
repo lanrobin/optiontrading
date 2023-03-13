@@ -76,7 +76,7 @@ class TigerStockClient(IStockClient):
         self.AccountId = None
 
 
-    def initialize(self, prod_env:bool):
+    def initialize(self, prod_env:bool, account:str, symbol:str):
         config_path = ""
         if prod_env:
             config_path = f"{env.get_data_root_path()}/tigersandbox"
@@ -90,10 +90,10 @@ class TigerStockClient(IStockClient):
         
         client_config = TigerOpenClientConfig(sandbox_debug=False, props_path=config_path)
         client_config.log_level = logging.DEBUG
-        client_config.log_path = env.get_data_root_path() + "/log/tigerapi.log"
+        client_config.log_path = env.get_data_root_path() + f"/log/{account}_{symbol}tigerapi.log"
         client_config.timezone = "America/New_York"
         client_config.tiger_id = configs["tiger_id"].data
-        client_config.account = configs["account"].data
+        client_config.account = account
         client_config.private_key = configs["private_key_pk1"].data
 
         # 接口超时时间
@@ -104,7 +104,7 @@ class TigerStockClient(IStockClient):
         # 最多重试次数
         client_config.retry_max_tries = 5
         self.TradeClient = TradeClient(client_config)
-        self.AccountId = configs["account"].data
+        self.AccountId = account
     
 
     def get_option_chain(self, symbol:str, expire_date_str:str, type:OptionType) -> List[StockOption]:
