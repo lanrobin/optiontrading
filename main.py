@@ -9,7 +9,8 @@ import stock_base
 from stock_tiger import TigerStockClient
 import sys, getopt
 
-SWITCH_MINUTE_BEFORE_MARKET_CLOSE = 3
+SWITCH_SECONDS_BEFORE_MARKET_CLOSE = 30
+SHORT_SLEEP_SECONDS_BEFORE_MARKET_CLOSE = 45
 __EMAIL_MAX_COUNT = 5
 PROTECT_TIMES = 4
 
@@ -119,7 +120,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
 
 
-def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
+def switch_position(client: stock_base.IStockClient, symbol:str, market_close: datetime) -> bool:
     global G_switch_position_error_count
     try:
         logging.debug("Begin switch position.")
@@ -140,6 +141,8 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
             status = client.buy_option_to_close(p.Id, p.OptionType, -p.Quantity)
             total_bought_options += abs(p.Quantity)
             logging.info(f"Buy {p.Id} with {p.Quantity} contracts returns {status}")
+
+        ###Here we should check if the order to buy option filled. And then continue.
         
         ### STEP 3: Sell options that expire in next Friday
         next_friday = market_date_utils.get_next_nth_friday(datetime.datetime.now(), 1)
@@ -174,12 +177,33 @@ def switch_position(client: stock_base.IStockClient, symbol:str) -> bool:
         else:
             logging.warn("Already had enough position for {symbol} that expire at {next_friday}")
 
+        while True:
+            # check if there are open orders.
+            open_orders = client.get_open_option_orders(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, next_friday)
+            open_orders_quantity = 0
+
+            for o in open_orders:
+                open_orders_quantity += abs(o.Quantity)
+            time.sleep(5) # wait for 5 seconds and retry.
+            current = datetime.datetime.now()
+            if open_orders_quantity == 0 or current >= market_close:
+                break
+        
+        
+       
+
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, next_friday)
         stock_base.save_positions_to_file(expiried_opt_str_next_friday,  client.get_account_id(), symbol, positions)
-        email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
-        logging.info(email_msg)
-        env.send_email("调仓完成", email_msg)
+        email_msg = ""
 
+        if open_orders_quantity == 0:
+            email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
+            env.send_email("调仓完成", email_msg)
+        else:
+            email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权,但是有{open_orders_quantity}没有成效。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
+            env.send_email("注意！！调仓没有完成！", email_msg)
+        
+        logging.info(email_msg)
         logging.info("Switch position finished.")
 
         # recovered.
@@ -240,6 +264,7 @@ def main():
     current = datetime.datetime.now()
     market_open_time = datetime.datetime.combine(current.date(), datetime.time(hour=9, minute=30))
     market_close_time = market_date_utils.get_market_close_time(date_str)
+    sleep_seconds_before_next_loop = 55
 
     if not market_date_utils.is_market_open(date_str):
         logging.warning("Market is not open today:" + date_str)
@@ -258,17 +283,20 @@ def main():
                 env.send_email("期权交易开始了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
                 start_email_sent = True
 
-            if market_date_utils.is_date_week_end(date_str) and delta_to_close < datetime.timedelta(minutes = SWITCH_MINUTE_BEFORE_MARKET_CLOSE):
-                logging.info("It is end of week today. We need switch the position.")
-                succeeded = switch_position(stockClient, G_target_symbol)
-                logging.info("switch result:" + str(succeeded) +", job done.")
-                break
+            if market_date_utils.is_date_week_end(date_str):
+                if delta_to_close < datetime.timedelta(seconds = SWITCH_SECONDS_BEFORE_MARKET_CLOSE):
+                    logging.info("It is end of week today. We need switch the position.")
+                    succeeded = switch_position(stockClient, G_target_symbol, market_close_time)
+                    logging.info("switch result:" + str(succeeded) +", job done.")
+                    break
+                elif delta_to_close < datetime.timedelta(seconds=SHORT_SLEEP_SECONDS_BEFORE_MARKET_CLOSE):
+                    sleep_seconds_before_next_loop
             else:
                 logging.info("Market is open, we need to monitor the position.")
                 succeeded = maintain_position(stockClient, G_target_symbol)
                 logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
 
-        time.sleep(55) # sleep for 55 seconds and 
+        time.sleep(sleep_seconds_before_next_loop) # sleep for 55 seconds and 
         current = datetime.datetime.now()
 
     logging.info("Market closed.")
