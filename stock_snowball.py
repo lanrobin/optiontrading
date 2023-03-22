@@ -290,7 +290,6 @@ class SnowballStockClient(IStockClient):
     
     def sell_all_stock_to_close(self, symbol:str) -> OrderStatus:
         stock_position = self.get_position(market = OrderMarket.US, security_type=SecurityType.STK, symbol=symbol)
-        result = None
         if len(stock_position) == 0:
             logging.info("No position for symbol:" + symbol)
             return SnbOrderStatus(order = None)
@@ -326,7 +325,7 @@ class SnowballStockClient(IStockClient):
         # if there are more orders, fetch them all.
         while resp is not None and resp.data["count"] >= resp.data["size"]:
             resp = self.SnbHttpClient.get_order_list(page=resp.data["page"] + 1, size=10, status=None, security_type="OPT")
-            raw_orders.extend(resp.data["items"].values())
+            raw_orders.extend(resp.data["items"])
         target_orders = []
         id_prefix = f"{symbol}{expired_date.strftime('%y%m%d')}"
 
