@@ -323,7 +323,7 @@ class SnowballStockClient(IStockClient):
         raw_orders.extend(resp.data["items"])
 
         # if there are more orders, fetch them all.
-        while resp is not None and resp.data["count"] >= resp.data["size"]:
+        while resp is not None and len(resp.data["items"]) >= resp.data["size"]:
             resp = self.SnbHttpClient.get_order_list(page=resp.data["page"] + 1, size=10, status=None, security_type="OPT")
             raw_orders.extend(resp.data["items"])
         target_orders = []
