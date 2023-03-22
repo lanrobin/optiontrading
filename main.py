@@ -257,17 +257,17 @@ def main():
     if G_prod_env:
         logging.warn("It is in prod env.")
         raise Exception ("It is prod Now.")
-
-    if G_debug_main_method:
-        maintain_position(stockClient, G_target_symbol)
-        switch_position(stockClient, G_target_symbol)
-
+    
     start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.
     current = datetime.datetime.now()
     market_open_time = datetime.datetime.combine(current.date(), datetime.time(hour=9, minute=30))
     market_close_time = market_date_utils.get_market_close_time(date_str)
     sleep_seconds_before_next_loop = 55
+
+    if G_debug_main_method:
+        maintain_position(stockClient, G_target_symbol)
+        switch_position(stockClient, G_target_symbol, market_close_time)
 
     if not market_date_utils.is_market_open(date_str):
         logging.warning("Market is not open today:" + date_str)

@@ -216,6 +216,8 @@ class TigerStockClient(IStockClient):
         self.TradeClient.place_order(order)
         return TigerOrderStatus(order = order)
 
+    def buy_stock_to_open(self, symbol: str, quantity: int) -> OrderStatus:
+        raise Exception("Not implemented.")
     
     def sell_all_stock_to_close(self, symbol:str) -> OrderStatus:
         stock_position = self.get_position(market = OrderMarket.US, security_type=SecurityType.STK, symbol=symbol)

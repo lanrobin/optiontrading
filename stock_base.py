@@ -201,6 +201,10 @@ class IStockClient(abc.ABC):
     @abc.abstractmethod
     def sell_stock_to_close(self, symbol: str, quantity: int) -> OrderStatus:
         '''Query an self.'''
+    
+    @abc.abstractmethod
+    def buy_stock_to_open(self, symbol: str, quantity: int) -> OrderStatus:
+        '''Query an self.'''
 
     @abc.abstractmethod
     def sell_all_stock_to_close(self, symbol: str) -> OrderStatus:

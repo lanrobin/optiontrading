@@ -3,6 +3,9 @@ import json
 import re
 from snbpy.common.domain.snb_config import SnbConfig
 from snbpy.snb_api_client import SnbHttpClient
+from snbpy.common.constant.snb_constant import API_VERSION, HttpMethod, OrderSide, Currency, TimeInForce, \
+    OrderType
+from snbpy.common.constant.snb_constant import SecurityType as SST
 import logging
 from datetime import date, datetime
 import uuid
@@ -137,7 +140,7 @@ class SnowballStockClient(IStockClient):
         items = []
         if(resp is not None and len(resp.data) > 0):
             items = self.__snb_position_converter(resp.data, symbol)
-        return items
+        return [i for i in items if i.Symbol.casefold() == symbol.casefold()]
         
 
 
@@ -160,14 +163,14 @@ class SnowballStockClient(IStockClient):
     
     def buy_option_to_close(self, id:str, opt_type:OptionType, quantity:int) -> OrderStatus:
         logging.info("buy_option_to_close called.")
-        order_id = str(uuid.uuid4()).replace('-', '')
-        security_type = "OPT"
+        order_id = self.__generate_new_order_id()
+        security_type = SST.OPT
         exchange = "USEX"
-        side = "BUY"
-        currency = "USD"
+        side = OrderSide.BUY
+        currency = Currency.USD
         price  = 0
-        order_type = "MARKET"
-        tif = "DAY"
+        order_type = OrderType.MARKET
+        tif = TimeInForce.DAY
         force_only_rth = True
         resp = self.SnbHttpClient.place_order(order_id=order_id,
                                              security_type=security_type,
@@ -181,10 +184,10 @@ class SnowballStockClient(IStockClient):
                                              tif=tif,
                                              force_only_rth=force_only_rth)
         
-        logging.debug(f"place order:{order_id} on symbol:{id} resp status:{resp['result_data']['status']}")
+        logging.debug(f"place order:{order_id} on symbol:{id} resp code:{resp.result_code}, msg:{resp.result_str}")
         order_resp = self.SnbHttpClient.get_order_by_id(order_id=order_id)
 
-        return self.__snb_order_converter(order_resp.data["items"].values())
+        return self.__snb_order_converter([order_resp.data])
 
     
     def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> OrderStatus:
@@ -200,31 +203,31 @@ class SnowballStockClient(IStockClient):
             raise Exception("Unable find suitable for symbol:" + symbol +" at strike:" + str(strike) +" in expiry:" + expiry_str)
         id = target_option.Id
 
-        order_id = str(uuid.uuid4()).replace('-', '')
-        security_type = "OPT"
+        order_id = self.__generate_new_order_id()
+        security_type = SST.OPT
         exchange = "USEX"
-        side = "SELL"
-        currency = "USD"
+        side = OrderSide.SELL
+        currency = Currency.USD
         price  = 0
-        order_type = "MARKET"
-        tif = "DAY"
+        order_type = OrderType.MARKET
+        tif = TimeInForce.DAY
         force_only_rth = True
-        resp = self.SnbHttpClient.place_order(order_id=order_id,
-                                             security_type=security_type,
-                                             symbol=id,
-                                             exchange=exchange,
-                                             side=side,
-                                             currency=currency,
-                                             quantity=quantity,
-                                             price=price,
-                                             order_type=order_type,
-                                             tif=tif,
-                                             force_only_rth=force_only_rth)
+        resp = self.SnbHttpClient.place_order(order_id,
+                                             security_type,
+                                             id,
+                                             exchange,
+                                             side,
+                                             currency,
+                                             quantity,
+                                             price,
+                                             order_type,
+                                             tif,
+                                             force_only_rth)
         
-        logging.debug(f"place order:{order_id} on symbol:{id} resp status:{resp['result_data']['status']}")
+        logging.debug(f"place order:{order_id} on symbol:{id} resp code:{resp.result_code}, msg:{resp.result_str}")
         order_resp = self.SnbHttpClient.get_order_by_id(order_id=order_id)
 
-        return self.__snb_order_converter(order_resp.data["items"].values())
+        return self.__snb_order_converter([order_resp.data])
     
     
     def sell_position_to_close(self, opt_position:StockPosition) -> OrderStatus:
@@ -232,14 +235,14 @@ class SnowballStockClient(IStockClient):
         raise Exception("Not implemented.")
     
     def sell_stock_to_close(self, symbol:str, quantity:int) -> OrderStatus:
-        order_id = str(uuid.uuid4()).replace('-', '')
-        security_type = "STK"
+        order_id = self.__generate_new_order_id()
+        security_type = SST.STK
         exchange = "USEX"
-        side = "SELL"
-        currency = "USD"
+        side = OrderSide.SELL
+        currency = Currency.USD
         price  = 0
-        order_type = "MARKET"
-        tif = "DAY"
+        order_type = OrderType.MARKET
+        tif = TimeInForce.DAY
         force_only_rth = True
         resp = self.SnbHttpClient.place_order(order_id=order_id,
                                              security_type=security_type,
@@ -253,11 +256,37 @@ class SnowballStockClient(IStockClient):
                                              tif=tif,
                                              force_only_rth=force_only_rth)
         
-        logging.debug(f"place order:{order_id} on symbol:{symbol} resp status:{resp['result_data']['status']}")
+        logging.debug(f"place order:{order_id} on symbol:{id} resp code:{resp.result_code}, msg:{resp.result_str}")
         order_resp = self.SnbHttpClient.get_order_by_id(order_id=order_id)
 
-        return self.__snb_order_converter(order_resp.data["items"].values())
+        return self.__snb_order_converter([order_resp.data])
 
+    def buy_stock_to_open(self, symbol: str, quantity: int) -> OrderStatus:
+        order_id = self.__generate_new_order_id()
+        security_type = SST.STK
+        exchange = "USEX"
+        side = OrderSide.BUY
+        currency = Currency.USD
+        price  = 0
+        order_type = OrderType.MARKET
+        tif = TimeInForce.DAY
+        force_only_rth = True
+        resp = self.SnbHttpClient.place_order(order_id=order_id,
+                                             security_type=security_type,
+                                             symbol=symbol,
+                                             exchange=exchange,
+                                             side=side,
+                                             currency=currency,
+                                             quantity=quantity,
+                                             price=price,
+                                             order_type=order_type,
+                                             tif=tif,
+                                             force_only_rth=force_only_rth)
+        
+        logging.debug(f"place order:{order_id} on symbol:{id} resp code:{resp.result_code}, msg:{resp.result_str}")
+        order_resp = self.SnbHttpClient.get_order_by_id(order_id=order_id)
+
+        return self.__snb_order_converter([order_resp.data])
     
     def sell_all_stock_to_close(self, symbol:str) -> OrderStatus:
         stock_position = self.get_position(market = OrderMarket.US, security_type=SecurityType.STK, symbol=symbol)
@@ -307,7 +336,7 @@ class SnowballStockClient(IStockClient):
             id_prefix = id_prefix + "P"
 
         if raw_orders != None and len(raw_orders) > 0:
-            filterred_orders = [o for o in raw_orders if o["symbol"].startswith(id_prefix)]
+            filterred_orders = [o for o in raw_orders if o["symbol"].startswith(id_prefix) and o["status"] != "CONCLUDED" and o["status"] != "INVALID" and o["status"] != "EXPIRED"]
             target_orders = self.__snb_order_converter(filterred_orders)
         return target_orders
     
@@ -325,12 +354,12 @@ class SnowballStockClient(IStockClient):
 
     @staticmethod
     def __get_option_type(id:str) -> OptionType:
-        put_call = re.findall('[a-zA-Z]', id)[-1]
-        if put_call is None:
+        put_call = re.findall('[a-zA-Z]', id)
+        if put_call is None or len(put_call) == 0:
             return OptionType.NONE
-        if put_call.casefold() == "C".casefold():
+        if put_call[-1].casefold() == "C".casefold():
             return OptionType.CALL
-        if put_call.casefold() == "P".casefold():
+        if put_call[-1].casefold() == "P".casefold():
             return OptionType.PUT
         return OptionType.NONE
     
@@ -363,11 +392,13 @@ class SnowballStockClient(IStockClient):
                 sec_type = self.__convert_security_type(p["security_type"])
                 strike = 0
                 expiry = ""
+                real_symbol = p["symbol"]
                 if sec_type == SecurityType.OPT:
                     strike, expiry = self.__get_strike_and_expiry_from_symbol_id(p["symbol"])
+                    real_symbol = self.__get_symbol_from_option_id(p["symbol"])
                 positions.append(StockPosition(Account = p["account_id"],
                                                Exchange= p["exchange"],
-                                               Symbol = symbol,
+                                               Symbol = real_symbol,
                                                Id = p["symbol"],
                                                AverageCost = p["average_price"],
                                                Quantity= p["position"],
@@ -418,12 +449,16 @@ class SnowballStockClient(IStockClient):
         
         return None
 
-
+    def __generate_new_order_id(self)->str:
+        return f"{self.AccountId}{int(datetime.now().timestamp())}"
 
 if __name__ == "__main__":
     client = SnowballStockClient()
-    client.initialize(True, "U8787089", "SPY")
+    client.initialize(False, "DU1730009", "QQQ")
     #items = client.get_position(OrderMarket.US, SecurityType.OPT, "SPY")
     #orders = client.get_open_option_orders(OrderMarket.US, "SPY", OptionType.PUT, date(year=2023, month=3, day=24))
-    opt_positions = client.get_option_position(OrderMarket.US, "SPY", OptionType.PUT, date(2023, 3, 24))
-    print(str(opt_positions))
+    #opt_positions = client.get_option_position(OrderMarket.US, "SPY", OptionType.PUT, date(2023, 3, 24))
+    order_status = client.buy_stock_to_open("QQQ", 5)
+    print(str(order_status))
+    order_status = client.sell_stock_to_close("QQQ", 5)
+    print(str(order_status))
