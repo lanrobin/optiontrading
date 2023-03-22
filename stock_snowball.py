@@ -187,7 +187,7 @@ class SnowballStockClient(IStockClient):
         logging.debug(f"place order:{order_id} on symbol:{id} resp code:{resp.result_code}, msg:{resp.result_str}")
         order_resp = self.SnbHttpClient.get_order_by_id(order_id=order_id)
 
-        return self.__snb_order_converter([order_resp.data])
+        return self.__snb_order_converter([order_resp.data])[0]
 
     
     def sell_put_option_to_open(self, symbol:str, strike:float, quantity:int, expired_date:date) -> OrderStatus:
@@ -227,7 +227,7 @@ class SnowballStockClient(IStockClient):
         logging.debug(f"place order:{order_id} on symbol:{id} resp code:{resp.result_code}, msg:{resp.result_str}")
         order_resp = self.SnbHttpClient.get_order_by_id(order_id=order_id)
 
-        return self.__snb_order_converter([order_resp.data])
+        return self.__snb_order_converter([order_resp.data])[0]
     
     
     def sell_position_to_close(self, opt_position:StockPosition) -> OrderStatus:
@@ -259,7 +259,7 @@ class SnowballStockClient(IStockClient):
         logging.debug(f"place order:{order_id} on symbol:{id} resp code:{resp.result_code}, msg:{resp.result_str}")
         order_resp = self.SnbHttpClient.get_order_by_id(order_id=order_id)
 
-        return self.__snb_order_converter([order_resp.data])
+        return self.__snb_order_converter([order_resp.data])[0]
 
     def buy_stock_to_open(self, symbol: str, quantity: int) -> OrderStatus:
         order_id = self.__generate_new_order_id()
@@ -286,7 +286,7 @@ class SnowballStockClient(IStockClient):
         logging.debug(f"place order:{order_id} on symbol:{id} resp code:{resp.result_code}, msg:{resp.result_str}")
         order_resp = self.SnbHttpClient.get_order_by_id(order_id=order_id)
 
-        return self.__snb_order_converter([order_resp.data])
+        return self.__snb_order_converter([order_resp.data])[0]
     
     def sell_all_stock_to_close(self, symbol:str) -> OrderStatus:
         stock_position = self.get_position(market = OrderMarket.US, security_type=SecurityType.STK, symbol=symbol)
