@@ -7,6 +7,7 @@ import time
 import env
 import stock_base
 from stock_tiger import TigerStockClient
+from stock_snowball import SnowballStockClient
 import sys, getopt
 
 SWITCH_SECONDS_BEFORE_MARKET_CLOSE = 30
@@ -26,6 +27,8 @@ G_account = None
 def get_stock_client(brokerName:str):
     if brokerName.casefold() == "TIGER".casefold():
         return TigerStockClient()
+    elif brokerName.casefold() == "SNOWBALL".casefold():
+        return SnowballStockClient()
     else:
         raise Exception("Unknown broker:" + brokerName)
 
@@ -80,7 +83,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
                 logging.info(f"Will sell {sell_option_contract} options on {symbol} that expire at {expiried_opt_str_this_friday} on strike:{strike_price}")
                 order_status = client.sell_put_option_to_open(symbol, strike_price, sell_option_contract, this_friday)
                 logging.info(f"Option sold return:{order_status}")
-                env.send_email("期权仓位变化了，需要主关注。", f"因为有些期权被行权了，所以新卖了{sell_option_contract}手，返回结果:{order_status}")
+                env.send_email(f"{client.get_client_name()}期权仓位变化了，需要主关注。", f"因为有些期权被行权了，所以新卖了{sell_option_contract}手，返回结果:{order_status}")
             else:
                 logging.warn(f"Today {today_str} is end of week, we skip sell {sell_option_contract} option and wait for switch.")
             
@@ -108,7 +111,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             logging.info("There must be some stocks, sell them to close, result:" + str(succeeded))
             positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
             stock_base.save_positions_to_file(expiried_opt_str_this_friday,  client.get_account_id(), symbol, positions)
-            env.send_email("期权仓位变化了，需要主关注。", "已经把股票卖掉了。")
+            env.send_email(f"{client.get_client_name()}期权仓位变化了，需要主关注。", "已经把股票卖掉了。")
 
         G_maintain_position_error_count = 0
     except Exception as e:
@@ -116,7 +119,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
         err_msg = f"maintain_position {G_maintain_position_error_count}th error:{type(e)}:{e}"
         logging.error(err_msg)
         if G_maintain_position_error_count < __EMAIL_MAX_COUNT or G_maintain_position_error_count % 30 == 0:
-            env.send_email("期权交易出错了", f"错误是:{err_msg}, 时间：{market_date_utils.datetime_str(datetime.datetime.now())}")
+            env.send_email(f"{client.get_client_name()}期权交易出错了", f"错误是:{err_msg}, 时间：{market_date_utils.datetime_str(datetime.datetime.now())}")
 
 
 
@@ -198,10 +201,10 @@ def switch_position(client: stock_base.IStockClient, symbol:str, market_close: d
 
         if open_orders_quantity == 0:
             email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
-            env.send_email("调仓完成", email_msg)
+            env.send_email(f"{client.get_client_name()}调仓完成", email_msg)
         else:
             email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权,但是有{open_orders_quantity}没有成效。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
-            env.send_email("注意！！调仓没有完成！", email_msg)
+            env.send_email(f"{client.get_client_name()}。注意！！调仓没有完成！", email_msg)
         
         logging.info(email_msg)
         logging.info("Switch position finished.")
@@ -214,7 +217,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str, market_close: d
         err_msg = f"switch_position {G_switch_position_error_count}th error:{type(e)}:{e}"
         logging.error(err_msg)
         if G_switch_position_error_count < __EMAIL_MAX_COUNT or G_switch_position_error_count % 30 == 0:
-            env.send_email("期权交易出错了", f"错误是:{err_msg}, 时间：{market_date_utils.datetime_str(datetime.datetime.now())}")
+            env.send_email(f"{client.get_client_name()}期权交易出错了", f"错误是:{err_msg}, 时间：{market_date_utils.datetime_str(datetime.datetime.now())}")
 
 def main():
     global G_target_symbol
@@ -280,7 +283,7 @@ def main():
             time.sleep(delta_to_open.total_seconds() - 55) # We will sleep 55 second at end of process.
         elif current > market_open_time:
             if not start_email_sent:
-                env.send_email("期权交易开始了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
+                env.send_email(f"{stockClient.get_client_name()}期权交易开始了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
                 start_email_sent = True
 
             if market_date_utils.is_date_week_end(date_str):
@@ -300,7 +303,7 @@ def main():
         current = datetime.datetime.now()
 
     logging.info("Market closed.")
-    env.send_email("期权交易结束了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
+    env.send_email(f"{stockClient.get_client_name()}期权交易结束了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
 
 if __name__ == '__main__':
     main()

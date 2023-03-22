@@ -81,9 +81,9 @@ class TigerStockClient(IStockClient):
     def initialize(self, prod_env:bool, account:str, symbol:str):
         config_path = ""
         if prod_env:
-            config_path = f"{env.get_data_root_path()}/tigersandbox"
-        else:
             config_path = f"{env.get_data_root_path()}/tigerprod"
+        else:
+            config_path = f"{env.get_data_root_path()}/tigersandbox"
 
         configs = Properties()
         with open(f"{config_path}/tiger_openapi_config.properties", 'rb') as read_prop:
@@ -296,6 +296,10 @@ class TigerStockClient(IStockClient):
             filterred_orders = [o for o in orders if o.contract.identifier.replace(" ", "").startswith(id_prefix)]
             target_orders = self.__tiger_order_converter(filterred_orders)
         return target_orders
+    
+
+    def get_client_name(self) -> str:
+        return "老虎证券"
     
     def __convert_security_type(self, tigerType: str) -> SecurityType:
         strTigerType = tst.__dict__[tigerType]

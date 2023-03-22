@@ -222,6 +222,9 @@ class IStockClient(abc.ABC):
     def get_open_option_orders(self, market: OrderMarket, symbol: str, opt_type: OptionType, expired_date: date) -> list:
         '''Get the open orders.'''
 
+    @abc.abstractmethod
+    def get_client_name(self) -> str:
+        '''get_client_name.'''
 
 def get_option_type_from_str(opt_type: str) -> OptionType:
     if opt_type.casefold() == "PUT".casefold():
