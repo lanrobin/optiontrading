@@ -94,6 +94,9 @@ class Order:
         self.SecurityType = sec_type
         self.Identifier = identifier
 
+    def __str__(self) -> str:
+        return str(vars(self))
+
 
 class StockPosition:
     def __init__(self,
@@ -123,6 +126,9 @@ class StockPosition:
         self.MarketPrice = MarketPrice
         self.Expiry = Expiry
         self.Strike = Strike
+
+    def __str__(self) -> str:
+        return str(vars(self))
 
 
 class OrderOperationResult:
@@ -154,6 +160,9 @@ class OrderStatus(abc.ABC):
     @abc.abstractmethod
     def get_order_remaining(self) -> int:
         '''pass'''
+
+    def __str__(self) -> str:
+        return f"status:{self.get_order_status()}, id:{self.get_order_id()}, quantity:{self.get_order_quatity()},filled:{self.get_order_filled()}"
 
 
 class IStockClient(abc.ABC):

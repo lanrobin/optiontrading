@@ -48,6 +48,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
         if len(positions) > 0:
             for p in positions:
                 existing_contract_number += abs(p.Quantity)
+                logging.info(f"Existing position: {p}")
         logging.info(f"Expect {expected_option_contract} and current {existing_contract_number}")
 
 
@@ -56,6 +57,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
         open_orders_quantity = 0
 
         for o in open_orders:
+            logging.info(f"Open order:{o}")
             open_orders_quantity += abs(o.Quantity)
 
         if open_orders_quantity > 0:
@@ -141,6 +143,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str, market_close: d
         logging.info(f"There are {len(positions)} contracts positions.")
         total_bought_options = 0
         for p in positions:
+            logging.info(f"Closing position: {p}")
             status = client.buy_option_to_close(p.Id, p.OptionType, -p.Quantity)
             total_bought_options += abs(p.Quantity)
             logging.info(f"Buy {p.Id} with {p.Quantity} contracts returns {status}")
