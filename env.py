@@ -10,6 +10,7 @@ from datetime import datetime
 import sys
 import ssl
 import utils
+import time
 
 
 def get_data_root_path():
@@ -58,18 +59,22 @@ def send_email(subject, content):
     message['From'] = "{}".format(sender) 
     message['To'] = ",".join(receivers) 
     message['Subject'] = subject
-    
-    try: 
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        smtpObj = smtplib.SMTP(settings.smtpUrl, settings.smtpPort) # 启用SSL发信, 端口一般是465
-        smtpObj.ehlo()
-        smtpObj.starttls(context=context)
-        smtpObj.ehlo()
-        smtpObj.login(settings.userName, settings.passWord) # 登录验证 
-        smtpObj.sendmail(sender, receivers, message.as_string()) # 发送
-        logging.info("邮件已经发送。")
-    except smtplib.SMTPException as innerE: 
-        logging.error(innerE)
+    retry_times = 0
+    while retry_times < 5:
+        try: 
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+            smtpObj = smtplib.SMTP(settings.smtpUrl, settings.smtpPort) # 启用SSL发信, 端口一般是465
+            smtpObj.ehlo()
+            smtpObj.starttls(context=context)
+            smtpObj.ehlo()
+            smtpObj.login(settings.userName, settings.passWord) # 登录验证 
+            smtpObj.sendmail(sender, receivers, message.as_string()) # 发送
+            logging.info("邮件已经发送。")
+        except smtplib.SMTPException as innerE: 
+            retry_times += 1
+            logging.error(f"Send email failed {retry_times} with error:{innerE}")
+            time.sleep(30 * retry_times)
+
 
 GLOBAL_SETTING = __get_settings()
 
