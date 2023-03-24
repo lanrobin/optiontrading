@@ -456,6 +456,7 @@ class SnowballStockClient(IStockClient):
 
 if __name__ == "__main__":
     logging_util.setup_logging(f"stock_snowball_local_debug_option_traiding")
+    logging.debug("hello")
     client = SnowballStockClient()
     client.initialize(False, "DU1730009", "SPY")
     items = client.get_position(OrderMarket.US, SecurityType.OPT, "SPY")
