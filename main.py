@@ -297,10 +297,11 @@ def main():
                     break
                 elif delta_to_close < datetime.timedelta(seconds=SHORT_SLEEP_SECONDS_BEFORE_MARKET_CLOSE):
                     sleep_seconds_before_next_loop
-            else:
-                logging.info("Market is open, we need to monitor the position.")
-                succeeded = maintain_position(stockClient, G_target_symbol)
-                logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
+            
+            # we will always matain the position regardless of end of the week.
+            logging.info("Market is open, we need to monitor the position.")
+            succeeded = maintain_position(stockClient, G_target_symbol)
+            logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
 
         time.sleep(sleep_seconds_before_next_loop) # sleep for 55 seconds and 
         current = datetime.datetime.now()
