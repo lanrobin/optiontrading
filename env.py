@@ -70,6 +70,7 @@ def send_email(subject, content):
             smtpObj.login(settings.userName, settings.passWord) # 登录验证 
             smtpObj.sendmail(sender, receivers, message.as_string()) # 发送
             logging.info("邮件已经发送。")
+            break
         except smtplib.SMTPException as innerE: 
             retry_times += 1
             logging.error(f"Send email failed {retry_times} with error:{innerE}")
