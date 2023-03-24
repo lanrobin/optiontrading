@@ -10,8 +10,9 @@ from stock_tiger import TigerStockClient
 from stock_snowball import SnowballStockClient
 import sys, getopt
 
-SWITCH_SECONDS_BEFORE_MARKET_CLOSE = 30
+SWITCH_SECONDS_BEFORE_MARKET_CLOSE = 20
 SHORT_SLEEP_SECONDS_BEFORE_MARKET_CLOSE = 45
+STOP_MAIN_POSITION_SECONDS_BEFORE_MARKET_CLOSE = 125
 __EMAIL_MAX_COUNT = 5
 PROTECT_TIMES = 4
 
@@ -267,6 +268,7 @@ def main():
     market_open_time = datetime.datetime.combine(current.date(), datetime.time(hour=9, minute=30))
     market_close_time = market_date_utils.get_market_close_time(date_str)
     sleep_seconds_before_next_loop = 55
+    stop_maintain_position = False
 
     if G_debug_main_method:
         maintain_position(stockClient, G_target_symbol)
@@ -296,12 +298,17 @@ def main():
                     logging.info("switch result:" + str(succeeded) +", job done.")
                     break
                 elif delta_to_close < datetime.timedelta(seconds=SHORT_SLEEP_SECONDS_BEFORE_MARKET_CLOSE):
-                    sleep_seconds_before_next_loop
+                    sleep_seconds_before_next_loop = 5
+                    stop_maintain_position = True
+                    logging.info(f"Step into fast sleep stage and skip maintain step. sleep interval:{sleep_seconds_before_next_loop}")
             
-            # we will always matain the position regardless of end of the week.
-            logging.info("Market is open, we need to monitor the position.")
-            succeeded = maintain_position(stockClient, G_target_symbol)
-            logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
+            if not stop_maintain_position:
+                # we will always matain the position regardless of end of the week.
+                logging.info("Market is open, we need to monitor the position.")
+                succeeded = maintain_position(stockClient, G_target_symbol)
+                logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
+            else:
+                logging.info(f"It is now the fast transcation stage. sleep_seconds_before_next_loop:{sleep_seconds_before_next_loop}")
 
         time.sleep(sleep_seconds_before_next_loop) # sleep for 55 seconds and 
         current = datetime.datetime.now()
