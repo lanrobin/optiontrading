@@ -10,6 +10,7 @@ import logging
 from datetime import date, datetime
 import uuid
 import typing
+import logging_util
 
 #Snowball Settings
 class SnowballSettings(object):
@@ -137,7 +138,7 @@ class SnowballStockClient(IStockClient):
             raise Exception("Unsupported security type:" + str(security_type))
 
         resp = self.SnbHttpClient.get_position_list(security_type=snb_security_type)
-        logging.debug(f"SnbHttpClient.get_order_list return:{str(vars(resp))}")
+        logging.debug(f"SnbHttpClient.get_order_list return:{resp.result_str}")
         items = []
         if(resp is not None and len(resp.data) > 0):
             items = self.__snb_position_converter(resp.data, symbol)
@@ -322,11 +323,11 @@ class SnowballStockClient(IStockClient):
         raw_orders = []
         resp = self.SnbHttpClient.get_order_list(page=1, size=10, status=None, security_type="OPT")
         raw_orders.extend(resp.data["items"])
-        logging.debug(f"SnbHttpClient.get_order_list return:{str(vars(resp))}")
+        logging.debug(f"SnbHttpClient.get_order_list return:{resp.result_str}")
         # if there are more orders, fetch them all.
         while resp is not None and len(resp.data["items"]) >= resp.data["size"]:
             resp = self.SnbHttpClient.get_order_list(page=resp.data["page"] + 1, size=10, status=None, security_type="OPT")
-            logging.debug(f"SnbHttpClient.get_order_list return:{str(vars(resp))}")
+            logging.debug(f"SnbHttpClient.get_order_list return:{resp.result_str}")
             raw_orders.extend(resp.data["items"])
         target_orders = []
         id_prefix = f"{symbol}{expired_date.strftime('%y%m%d')}"
@@ -454,14 +455,15 @@ class SnowballStockClient(IStockClient):
         return f"{self.AccountId}{int(datetime.now().timestamp())}"
 
 if __name__ == "__main__":
+    logging_util.setup_logging(f"stock_snowball_local_debug_option_traiding")
     client = SnowballStockClient()
-    client.initialize(False, "DU1730009", "QQQ")
+    client.initialize(False, "DU1730009", "SPY")
     items = client.get_position(OrderMarket.US, SecurityType.OPT, "SPY")
     #client.buy_option_to_close('SPY230331P00399000', OptionType.PUT, 5)
     #client.buy_option_to_close('QQQ230331P00311000', OptionType.PUT, 5)
-    #orders = client.get_open_option_orders(OrderMarket.US, "SPY", OptionType.PUT, date(year=2023, month=3, day=31))
+    orders = client.get_open_option_orders(OrderMarket.US, "SPY", OptionType.PUT, date(year=2023, month=3, day=31))
     #opt_positions = client.get_option_position(OrderMarket.US, "SPY", OptionType.PUT, date(2023, 3, 24))
-    order_status = client.buy_stock_to_open("QQQ", 5)
-    print(str(order_status))
-    order_status = client.sell_stock_to_close("QQQ", 5)
+    #order_status = client.buy_stock_to_open("QQQ", 5)
     #print(str(order_status))
+    #order_status = client.sell_stock_to_close("QQQ", 5)
+    #print(str(vars(items)))
