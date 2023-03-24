@@ -137,6 +137,7 @@ class SnowballStockClient(IStockClient):
             raise Exception("Unsupported security type:" + str(security_type))
 
         resp = self.SnbHttpClient.get_position_list(security_type=snb_security_type)
+        logging.debug(f"SnbHttpClient.get_order_list return:{str(vars(resp))}")
         items = []
         if(resp is not None and len(resp.data) > 0):
             items = self.__snb_position_converter(resp.data, symbol)
@@ -321,10 +322,11 @@ class SnowballStockClient(IStockClient):
         raw_orders = []
         resp = self.SnbHttpClient.get_order_list(page=1, size=10, status=None, security_type="OPT")
         raw_orders.extend(resp.data["items"])
-
+        logging.debug(f"SnbHttpClient.get_order_list return:{str(vars(resp))}")
         # if there are more orders, fetch them all.
         while resp is not None and len(resp.data["items"]) >= resp.data["size"]:
             resp = self.SnbHttpClient.get_order_list(page=resp.data["page"] + 1, size=10, status=None, security_type="OPT")
+            logging.debug(f"SnbHttpClient.get_order_list return:{str(vars(resp))}")
             raw_orders.extend(resp.data["items"])
         target_orders = []
         id_prefix = f"{symbol}{expired_date.strftime('%y%m%d')}"
@@ -454,7 +456,7 @@ class SnowballStockClient(IStockClient):
 if __name__ == "__main__":
     client = SnowballStockClient()
     client.initialize(False, "DU1730009", "QQQ")
-    #items = client.get_position(OrderMarket.US, SecurityType.OPT, "SPY")
+    items = client.get_position(OrderMarket.US, SecurityType.OPT, "SPY")
     #client.buy_option_to_close('SPY230331P00399000', OptionType.PUT, 5)
     #client.buy_option_to_close('QQQ230331P00311000', OptionType.PUT, 5)
     #orders = client.get_open_option_orders(OrderMarket.US, "SPY", OptionType.PUT, date(year=2023, month=3, day=31))

@@ -206,7 +206,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str, market_close: d
             email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
             env.send_email(f"{client.get_client_name()}调仓完成", email_msg)
         else:
-            email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权,但是有{open_orders_quantity}没有成效。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
+            email_msg = f"买回了{total_bought_options}手{this_friday}到期的期权，再卖出了{sold_contract_number}手{expiried_opt_str_next_friday}到期的期权,但是有{open_orders_quantity}没有成交。时间：" + market_date_utils.datetime_str(datetime.datetime.now())
             env.send_email(f"{client.get_client_name()}。注意！！调仓没有完成！", email_msg)
         
         logging.info(email_msg)
