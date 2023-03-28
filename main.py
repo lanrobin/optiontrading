@@ -31,6 +31,19 @@ def get_stock_client(brokerName:str):
         return SnowballStockClient()
     else:
         raise Exception("Unknown broker:" + brokerName)
+    
+def get_position_summary(client: stock_base.IStockClient, symbol:str) -> list:
+     # After market close, we need to send the summary.
+    stk_positions = client.get_position(stock_base.SecurityType.STK, G_target_symbol)
+    position_strs = []
+    for sp in stk_positions:
+        position_strs.append(sp.to_summary_str())
+
+    opt_positions = client.get_position(stock_base.SecurityType.OPT, G_target_symbol)
+    for op in opt_positions:
+        position_strs.append(sp.to_summary_str())
+
+    return position_strs
 
 def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
@@ -312,8 +325,11 @@ def main():
         time.sleep(sleep_seconds_before_next_loop) # sleep for 55 seconds and 
         current = datetime.datetime.now()
 
-    logging.info("Market closed.")
-    env.send_email(f"{stockClient.get_client_name()}期权交易结束了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
+   
+    position_strs = get_position_summary(stockClient, G_target_symbol)
+    summary_str = "\n".join(position_strs)
+    logging.info(f"Market closed. Positions:{summary_str}")
+    env.send_email(f"{stockClient.get_client_name()}期权交易结束了。", f"时间:{market_date_utils.datetime_str(datetime.datetime.now())}, 仓位:{summary_str}")
 
 if __name__ == '__main__':
     main()
