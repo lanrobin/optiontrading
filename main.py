@@ -34,14 +34,14 @@ def get_stock_client(brokerName:str):
     
 def get_position_summary(client: stock_base.IStockClient, symbol:str) -> list:
      # After market close, we need to send the summary.
-    stk_positions = client.get_position(stock_base.SecurityType.STK, G_target_symbol)
+    stk_positions = client.get_position(stock_base.OrderMarket.US, stock_base.SecurityType.STK, G_target_symbol)
     position_strs = []
     for sp in stk_positions:
         position_strs.append(sp.to_summary_str())
 
-    opt_positions = client.get_position(stock_base.SecurityType.OPT, G_target_symbol)
+    opt_positions = client.get_position(stock_base.OrderMarket.US, stock_base.SecurityType.OPT, G_target_symbol)
     for op in opt_positions:
-        position_strs.append(sp.to_summary_str())
+        position_strs.append(op.to_summary_str())
 
     return position_strs
 
@@ -273,7 +273,7 @@ def main():
     if G_prod_env:
         logging.warn("It is in prod env.")
         raise Exception ("It is prod Now.")
-    
+
     start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.
     current = datetime.datetime.now()
