@@ -126,7 +126,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             logging.info("There must be some stocks, sell them to close, result:" + str(succeeded))
             positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
             stock_base.save_positions_to_file(expiried_opt_str_this_friday,  client.get_account_id(), symbol, positions)
-            env.send_email(f"{client.get_client_name()}期权仓位变化了，需要主关注。", "已经把股票卖掉了。")
+            env.send_email(f"{client.get_client_name()}期权仓位变化了，需要主关注。", f"已经把股票卖掉了:{diff}")
 
         G_maintain_position_error_count = 0
     except Exception as e:
