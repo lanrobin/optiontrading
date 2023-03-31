@@ -1,5 +1,5 @@
 import unittest
-from market_date_utils import (is_date_week_end, get_next_nth_friday)
+from market_date_utils import (is_date_week_end, get_next_nth_friday, get_option_expiry_this_week)
 from datetime import datetime, time, date
 
 class TestConfig(unittest.TestCase):
@@ -24,5 +24,19 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(next_2rd_friday, get_next_nth_friday(current, 2))
 
         current = date.fromisoformat("2023-03-11")
-        this_friday = date.fromisoformat("2023-03-10")
+        this_friday = date.fromisoformat("2023-03-17")
         self.assertEqual(this_friday, get_next_nth_friday(current, 0))
+
+
+    def test_option_expiry(self):
+        current = date.fromisoformat("2023-03-31")
+        this_week_expiry = date.fromisoformat("2023-03-31")
+        self.assertEqual(this_week_expiry, get_option_expiry_this_week(current))
+
+        current = date.fromisoformat("2023-04-07")
+        this_week_expiry = date.fromisoformat("2023-04-06")
+        self.assertEqual(this_week_expiry, get_option_expiry_this_week(current))
+
+        current = date.fromisoformat("2024-03-29")
+        this_week_expiry = date.fromisoformat("2024-03-28")
+        self.assertEqual(this_week_expiry, get_option_expiry_this_week(current))

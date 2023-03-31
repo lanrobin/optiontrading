@@ -40,7 +40,15 @@ def is_market_open(date_str: str) -> bool:
 def datetime_str(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
-def get_next_nth_friday(current:datetime, next = 0) -> date:
-    today = date.today()
+def get_next_nth_friday(current:date, next = 0) -> date:
+    today = current
     next_friday = today + timedelta( (4-today.weekday()) % 7 + next * 7)
     return next_friday
+
+def get_option_expiry_this_week(friday:date) -> date:
+    date_str = friday.strftime("%Y-%m-%d")
+    if date_str in config.SPECIAL_WEEK_END_DATE:
+        if not config.SPECIAL_WEEK_END_DATE[date_str][2]:
+            return friday + timedelta(-1)
+        
+    return friday
