@@ -129,6 +129,9 @@ class StockPosition:
 
     def __str__(self) -> str:
         return str(vars(self))
+    
+    def to_summary_str(self) -> str:
+        return f"Name:{self.Id if self.SecurityType == SecurityType.OPT else self.Symbol}, Quantity:{self.Quantity}"
 
 
 class OrderOperationResult:
