@@ -51,7 +51,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
     try:
         logging.debug("Begin maintain position.")
-        this_friday = market_date_utils.get_next_nth_friday(datetime.datetime.now(), 0)
+        this_friday = market_date_utils.get_option_expiry_this_week(market_date_utils.get_next_nth_friday(datetime.datetime.now(), 0))
         expiried_opt_str_this_friday = this_friday.strftime("%Y-%m-%d")
         expected_option_contract = stock_base.get_contract_number_of_option(symbol)
 
@@ -143,7 +143,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str, market_close: d
     try:
         logging.debug("Begin switch position.")
         # env.send_email("开始调仓了", "成功了:" + market_date_utils.datetime_str(datetime.datetime.now()))
-        this_friday = market_date_utils.get_next_nth_friday(datetime.datetime.now(), 0)
+        this_friday = market_date_utils.get_option_expiry_this_week(market_date_utils.get_next_nth_friday(datetime.datetime.now(), 0))
 
         ### STEP 1: Get the current options position expired this friday.
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
@@ -164,7 +164,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str, market_close: d
         ###Here we should check if the order to buy option filled. And then continue.
         
         ### STEP 3: Sell options that expire in next Friday
-        next_friday = market_date_utils.get_next_nth_friday(datetime.datetime.now(), 1)
+        next_friday = market_date_utils.get_option_expiry_this_week(market_date_utils.get_next_nth_friday(datetime.datetime.now(), 1))
         expiried_opt_str_next_friday = next_friday.strftime("%Y-%m-%d")
 
         strike = stock_base.get_put_option_strike_price(symbol)
