@@ -22,6 +22,7 @@ G_broker_name = "TIGER"
 G_debug_main_method = True
 G_prod_env = False
 G_account = None
+G_expected_option_contract_number = 0
 
 
 def get_stock_client(brokerName:str):
@@ -48,12 +49,13 @@ def get_position_summary(client: stock_base.IStockClient, symbol:str) -> list:
 def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
     global G_maintain_position_error_count
+    global G_expected_option_contract_number
 
     try:
         logging.debug("Begin maintain position.")
         this_friday = market_date_utils.get_option_expiry_this_week(market_date_utils.get_next_nth_friday(datetime.datetime.now(), 0))
         expiried_opt_str_this_friday = this_friday.strftime("%Y-%m-%d")
-        expected_option_contract = stock_base.get_contract_number_of_option(symbol)
+        expected_option_contract = G_expected_option_contract_number #stock_base.get_contract_number_of_option(symbol)
 
         positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
 
@@ -140,6 +142,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
 def switch_position(client: stock_base.IStockClient, symbol:str, market_close: datetime) -> bool:
     global G_switch_position_error_count
+    global G_expected_option_contract_number
     try:
         logging.debug("Begin switch position.")
         # env.send_email("开始调仓了", "成功了:" + market_date_utils.datetime_str(datetime.datetime.now()))
@@ -168,7 +171,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str, market_close: d
         expiried_opt_str_next_friday = next_friday.strftime("%Y-%m-%d")
 
         strike = stock_base.get_put_option_strike_price(symbol)
-        contracts = stock_base.get_contract_number_of_option(symbol)
+        contracts = G_expected_option_contract_number #stock_base.get_contract_number_of_option(symbol)
         
         sold_contract_number = 0
         existing_contract_number = 0
@@ -241,7 +244,8 @@ def main():
     global G_debug_main_method
     global G_prod_env
     global G_account
-    opts, _ = getopt.getopt(sys.argv[1:], shortopts="s:b:d:e:a:", longopts=["symbol=", "broker=", "debug=", "env=", "account="])
+    global G_expected_option_contract_number
+    opts, _ = getopt.getopt(sys.argv[1:], shortopts="s:b:d:e:a:n:", longopts=["symbol=", "broker=", "debug=", "env=", "account=", "number="])
 
     for opt, value in opts:
         if opt in ("-s", "--symbol"):
@@ -254,18 +258,26 @@ def main():
             G_prod_env = True if "PROD".casefold() == value.casefold() else False
         elif opt in ("-a", "--account"):
             G_account = value
+        elif opt in ("-n", "--number"):
+            try:
+                G_expected_option_contract_number = int(value)
+            except ValueError:
+                G_expected_option_contract_number = 0
 
     if G_account == None:
         raise Exception("No account provide!!")
     
     if G_target_symbol == None:
         raise Exception("No symbol provide!!")
+    
+    if G_expected_option_contract_number < 1:
+        raise Exception(f"No expected contract number provided:{G_expected_option_contract_number}")
 
     logging_util.setup_logging(f"{G_broker_name}_{G_account}_{G_target_symbol}_option_traiding")
     
     date = pd.Timestamp.now()
     date_str = date.strftime("%Y-%m-%d")
-    logging.info(f"Program launching with G_target_symbol:{G_target_symbol}, G_broker_name:{G_broker_name}, G_debug_main_method:{G_debug_main_method}, G_prod_env:{G_prod_env}")
+    logging.info(f"Program launching with G_target_symbol:{G_target_symbol}, G_broker_name:{G_broker_name}, G_debug_main_method:{G_debug_main_method}, G_prod_env:{G_prod_env}, G_expected_option_contract_number:{G_expected_option_contract_number}")
     stockClient = get_stock_client(G_broker_name)
 
 
