@@ -23,6 +23,7 @@ G_debug_main_method = True
 G_prod_env = False
 G_account = None
 G_expected_option_contract_number = 0
+G_position_incorrect_email_sent = False
 
 
 def get_stock_client(brokerName:str):
@@ -50,6 +51,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str, market_close:
 
     global G_maintain_position_error_count
     global G_expected_option_contract_number
+    global G_position_incorrect_email_sent
 
     try:
         logging.debug("Begin maintain position.")
@@ -143,10 +145,13 @@ def maintain_position(client: stock_base.IStockClient, symbol:str, market_close:
             logging.warning(f"Sold {sell_option_contract} options expired this friday and now total:{len(positions)}.")
             return True
         elif existing_contract_number + open_orders_quantity > expected_option_contract:
-            msg = f"仓位信息不对，expected_option_contract：{expected_option_contract} < existing_contract_number:{existing_contract_number} + open_orders_quantity:{open_orders_quantity}"
+            msg = f"仓位信息不对，expected_option_contract：{expected_option_contract} < existing_contract_number:{existing_contract_number} + open_orders_quantity:{open_orders_quantity}, G_position_incorrect_email_sent:{G_position_incorrect_email_sent}"
             logging.error(msg)
+            if not G_position_incorrect_email_sent:
+                env.send_email("出错了!仓位信息不对!", msg)
+                G_position_incorrect_email_sent = True
+        
         loaded_positions = stock_base.load_positions_from_file(expiried_opt_str_this_friday, client.get_account_id(), symbol)
-
         if len(loaded_positions) < 1:
             logging.info("There is no options expired this Friday locally, save the position from broker.")
             stock_base.save_positions_to_file(expiried_opt_str_this_friday, client.get_account_id(), symbol, positions)
