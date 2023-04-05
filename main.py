@@ -46,7 +46,7 @@ def get_position_summary(client: stock_base.IStockClient, symbol:str) -> list:
 
     return position_strs
 
-def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
+def maintain_position(client: stock_base.IStockClient, symbol:str, market_close:datetime) -> bool:
 
     global G_maintain_position_error_count
     global G_expected_option_contract_number
@@ -57,26 +57,25 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
         expiried_opt_str_this_friday = this_friday.strftime("%Y-%m-%d")
         expected_option_contract = G_expected_option_contract_number #stock_base.get_contract_number_of_option(symbol)
 
-        positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
-
-        existing_contract_number = 0
-        if len(positions) > 0:
-            for p in positions:
-                existing_contract_number += abs(p.Quantity)
-                logging.info(f"Existing position: {p}")
-        logging.info(f"Expect {expected_option_contract} and current {existing_contract_number}")
-
-
         # check if there are open orders.
-        open_orders = client.get_open_option_orders(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
         open_orders_quantity = 0
-
+        open_orders = client.get_open_option_orders(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
         for o in open_orders:
             logging.info(f"Open order:{o}")
             open_orders_quantity += abs(o.Quantity)
 
         if open_orders_quantity > 0:
             logging.warn(f"There are {open_orders_quantity} open orders for symbol:{symbol}  expires at {expiried_opt_str_this_friday}")
+
+        # check the current position.
+        existing_contract_number = 0
+        positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
+        if len(positions) > 0:
+            for p in positions:
+                existing_contract_number += abs(p.Quantity)
+                logging.info(f"Existing position: {p}")
+        logging.info(f"Expect {expected_option_contract} and current {existing_contract_number}")
+
 
         if existing_contract_number + open_orders_quantity< expected_option_contract:
             sell_option_contract = expected_option_contract - existing_contract_number - open_orders_quantity
@@ -94,8 +93,11 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             today = pd.Timestamp.now()
             today_str = today.strftime("%Y-%m-%d")
             ########----------------------------------------
-            ss = env.get_option_strategy_setting()
-            if not market_date_utils.is_date_week_end(date_str=today_str) and ss.BackFillAfterSold:
+            
+            # we will refill the position if there are more than 4 hours to market close time.
+            refill_position = True if market_close - datetime.datetime.now() > datetime.timedelta(hours=4) else False
+            logging.warning(f"We need to refill_position:{refill_position}")
+            if not market_date_utils.is_date_week_end(date_str=today_str) and refill_position:
                 logging.info(f"Will sell {sell_option_contract} options on {symbol} that expire at {expiried_opt_str_this_friday} on strike:{strike_price}")
                 order_status = client.sell_put_option_to_open(symbol, strike_price, sell_option_contract, this_friday)
                 logging.info(f"Option sold return:{order_status}")
@@ -105,17 +107,15 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
                 sleep_times_before_order_to_fill = 0
                 start_waiting_order_to_fill_time = datetime.datetime.now()
                 while datetime.datetime.now() - start_waiting_order_to_fill_time < datetime.timedelta(minutes=10):
-
-                    open_orders = client.get_open_option_orders(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
+                    
                     open_orders_quantity = 0
-
+                    open_orders = client.get_open_option_orders(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
                     for o in open_orders:
                         logging.info(f"Open order:{o}")
                         open_orders_quantity += abs(o.Quantity)
 
-                    positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
-
                     existing_contract_number = 0
+                    positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
                     if len(positions) > 0:
                         for p in positions:
                             existing_contract_number += abs(p.Quantity)
@@ -123,7 +123,7 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
 
                     logging.debug(f"There still {open_orders_quantity} open order for {symbol} expired at:{expiried_opt_str_this_friday} and the position is:{existing_contract_number}")
 
-                    if open_orders_quantity == 0 and existing_contract_number == expected_option_contract:
+                    if open_orders_quantity == 0 and existing_contract_number >= expected_option_contract:
                         logging.debug(f"All order are filled. break")
                         break
                     else:
@@ -331,7 +331,7 @@ def main():
     stop_maintain_position = False
 
     if G_debug_main_method:
-        maintain_position(stockClient, G_target_symbol)
+        maintain_position(stockClient, G_target_symbol, market_close_time)
         switch_position(stockClient, G_target_symbol, market_close_time)
 
     if not market_date_utils.is_market_open(date_str):
@@ -365,7 +365,7 @@ def main():
             if not stop_maintain_position:
                 # we will always matain the position regardless of end of the week.
                 logging.info("Market is open, we need to monitor the position.")
-                succeeded = maintain_position(stockClient, G_target_symbol)
+                succeeded = maintain_position(stockClient, G_target_symbol, market_close_time)
                 logging.info("Monitor result:" + str(succeeded) +", waiting for next round.")
             else:
                 logging.info(f"It is now the fast transcation stage. sleep_seconds_before_next_loop:{sleep_seconds_before_next_loop}")
