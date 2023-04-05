@@ -78,7 +78,6 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
         if open_orders_quantity > 0:
             logging.warn(f"There are {open_orders_quantity} open orders for symbol:{symbol}  expires at {expiried_opt_str_this_friday}")
 
-
         if existing_contract_number + open_orders_quantity< expected_option_contract:
             sell_option_contract = expected_option_contract - existing_contract_number - open_orders_quantity
             logging.info(f"We need to sell {sell_option_contract} options to fill up the position.")
@@ -101,6 +100,41 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
                 order_status = client.sell_put_option_to_open(symbol, strike_price, sell_option_contract, this_friday)
                 logging.info(f"Option sold return:{order_status}")
                 env.send_email(f"{client.get_client_name()}期权仓位变化了，需要主关注。", f"因为有些期权被行权了，所以新卖了{sell_option_contract}手，返回结果:{order_status}")
+
+                # 在这里我们需要等待一定的时间来让订单被执行。我们最多等待10分钟。
+                sleep_times_before_order_to_fill = 0
+                start_waiting_order_to_fill_time = datetime.datetime.now()
+                while datetime.datetime.now() - start_waiting_order_to_fill_time < datetime.timedelta(minutes=10):
+
+                    open_orders = client.get_open_option_orders(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
+                    open_orders_quantity = 0
+
+                    for o in open_orders:
+                        logging.info(f"Open order:{o}")
+                        open_orders_quantity += abs(o.Quantity)
+
+                    positions = client.get_option_position(stock_base.OrderMarket.US, symbol, stock_base.OptionType.PUT, this_friday)
+
+                    existing_contract_number = 0
+                    if len(positions) > 0:
+                        for p in positions:
+                            existing_contract_number += abs(p.Quantity)
+                            logging.info(f"Existing position: {p}")
+
+                    logging.debug(f"There still {open_orders_quantity} open order for {symbol} expired at:{expiried_opt_str_this_friday} and the position is:{existing_contract_number}")
+
+                    if open_orders_quantity == 0 and existing_contract_number == expected_option_contract:
+                        logging.debug(f"All order are filled. break")
+                        break
+                    else:
+                        sleep_times_before_order_to_fill += 1
+                        logging.debug(f"Order are not filled, sleep and retry:{sleep_times_before_order_to_fill} times")
+                        time.sleep(30)
+
+                if sleep_times_before_order_to_fill > 2:
+                    email_msg_unfilled = f"一共sleep了:{sleep_times_before_order_to_fill}次了，仓位是,open_orders_quantity:{open_orders_quantity}, existing_contract_number:{existing_contract_number}"
+                    logging.error(email_msg_unfilled)
+                    env.send_email("卖单还没有完成了", email_msg_unfilled)
             else:
                 logging.warn(f"Today {today_str} is end of week, we skip sell {sell_option_contract} option and wait for switch.")
             
@@ -108,7 +142,9 @@ def maintain_position(client: stock_base.IStockClient, symbol:str) -> bool:
             stock_base.save_positions_to_file(expiried_opt_str_this_friday, client.get_account_id(), symbol, positions)
             logging.warning(f"Sold {sell_option_contract} options expired this friday and now total:{len(positions)}.")
             return True
-
+        elif existing_contract_number + open_orders_quantity > expected_option_contract:
+            msg = f"仓位信息不对，expected_option_contract：{expected_option_contract} < existing_contract_number:{existing_contract_number} + open_orders_quantity:{open_orders_quantity}"
+            logging.error(msg)
         loaded_positions = stock_base.load_positions_from_file(expiried_opt_str_this_friday, client.get_account_id(), symbol)
 
         if len(loaded_positions) < 1:
