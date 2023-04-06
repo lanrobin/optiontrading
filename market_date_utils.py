@@ -26,7 +26,8 @@ def get_market_close_time(date_str: str) -> datetime:
     market_close_date = date.fromisoformat(date_str)
     # If it is special close date, get it.
     if date_str in config.SPECIAL_WEEK_END_DATE.keys():
-        return datetime.combine(market_close_date, datetime.time(hour = config.SPECIAL_WEEK_END_DATE[date_str][0]))
+        h = config.SPECIAL_WEEK_END_DATE[date_str][0]
+        return datetime.combine(market_close_date, time(hour = h))
     else:
         #other are all 16:00:00
         return datetime.combine(market_close_date, time(hour = 16))
