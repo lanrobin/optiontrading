@@ -341,6 +341,7 @@ def main():
 
     if not market_date_utils.is_market_open(date_str):
         logging.warning("Market is not open today:" + date_str)
+        env.send_email("今天放假！", "所以不用交易。")
         return
     if current > market_close_time:
         logging.warning("Market is closed today at :" + market_date_utils.datetime_str(market_close_time))
