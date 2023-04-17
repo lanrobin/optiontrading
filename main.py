@@ -325,7 +325,7 @@ def main():
     stockClient.initialize(prod_env=G_prod_env, account=G_account, symbol=G_target_symbol)
     if G_prod_env:
         logging.warn("It is in prod env.")
-        raise Exception ("It is prod Now.")
+        # raise Exception ("It is prod Now.")
 
     start_email_sent = False
     # it will begin 5 minutes before market open and 5 minutes after the market close.
@@ -341,7 +341,7 @@ def main():
 
     if not market_date_utils.is_market_open(date_str):
         logging.warning("Market is not open today:" + date_str)
-        env.send_email("今天放假！", "所以不用交易。")
+        env.send_email(f"{stockClient.get_client_name()}今天放假！", "所以不用交易。")
         return
     if current > market_close_time:
         logging.warning("Market is closed today at :" + market_date_utils.datetime_str(market_close_time))

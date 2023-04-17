@@ -76,10 +76,12 @@ class TigerStockClient(IStockClient):
         self.TradeClient = None
         self.QuoteClient = None
         self.AccountId = None
+        self.IsProdEnv = False
 
 
     def initialize(self, prod_env:bool, account:str, symbol:str):
         config_path = ""
+        self.IsProdEnv = prod_env
         if prod_env:
             config_path = f"{env.get_data_root_path()}/tigerprod"
         else:
@@ -301,7 +303,7 @@ class TigerStockClient(IStockClient):
     
 
     def get_client_name(self) -> str:
-        return "老虎证券"
+        return f"{'PROD:' if self.IsProdEnv else 'TEST:'}老虎证券"
     
     def __convert_security_type(self, tigerType: str) -> SecurityType:
         strTigerType = tst.__dict__[tigerType]
