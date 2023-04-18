@@ -26,3 +26,9 @@ def get_option_chain(symbol:str, expired_date_str:str, option_type:str):
     ticker = yf.Ticker(symbol)
     options = ticker.option_chain(expired_date_str)
     return options.calls if option_type == "CALL" else options.puts
+
+
+if __name__ == "__main__":
+    price = get_realtime_quote_price("SPY")
+    chains = get_option_chain("SPY", "2023-04-21", "PUT")
+    print("Hello")
