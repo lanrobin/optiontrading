@@ -146,9 +146,9 @@ def main():
 
 
 if __name__ == "__main__":
-    '''while True:
-        env.send_email("测试主题", "测试内容从程序生成。")
+    while True:
+        env.send_email("测试主题notlsversion", "测试内容从程序生成。")
         print("generate an email.")
-        time.sleep(5)
-    '''
-    main()
+        time.sleep(50)
+    
+    #main()

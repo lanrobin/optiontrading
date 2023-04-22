@@ -46,7 +46,7 @@ class MyEventHandler(pyinotify.ProcessEvent):
                     smtpObj.ehlo()
                     smtpObj.login(settings.userName, settings.passWord) # 登录验证
                     for email in emails:
-                        content, subject = self.extract_email(email)
+                        subject, content = self.extract_email(email)
                         logging.debug(f"Try to send email subject:{subject}, content:{content}")
                         message = MIMEText(content, 'plain', 'utf-8') # 内容, 格式, 编码 
                         message['From'] = "{}".format(sender) 
