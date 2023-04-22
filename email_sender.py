@@ -145,5 +145,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #env.send_email("测试主题", "测试内容从程序生成。")
+    env.send_email("测试主题", "测试内容从程序生成。")
     main()

@@ -62,7 +62,8 @@ def __generate_email_file(subject, content):
 
     with open(filepath, 'w') as f:
         f.write(f"SUBJECT--{subject}\n")
-        f.write(f"CONTENT---{content}")
+        f.write(f"CONTENT---{content}\n")
+        f.write(f"TIME---{datetime.now()}\n")
 
     return filepath
 
