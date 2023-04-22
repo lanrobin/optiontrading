@@ -1,0 +1,11 @@
+[Unit]
+Description=Hotmail sender service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/rolan/github/optiontrading/email_sender_service.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
