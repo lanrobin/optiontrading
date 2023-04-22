@@ -4,8 +4,10 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/home/rolan/github/optiontrading/email_sender_service.py
+ExecStart=/usr/bin/python3 /home/rolan/github/optiontrading/email_sender_service.py
 Restart=always
+User=rolan
+Group=rolan
 
 [Install]
 WantedBy=multi-user.target
