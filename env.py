@@ -2,16 +2,12 @@ import platform
 import logging
 from pathlib import Path
 import json
-import smtplib
-from email.header import Header 
-from email.mime.text import MIMEText
 import re
 from datetime import datetime
 import sys
-import ssl
 import utils
 import time
-
+import uuid
 
 def get_data_root_path():
     path = ""
@@ -50,31 +46,28 @@ def __get_settings():
     s = Settings(**j)
     return s
 
+def __generate_email_file(subject, content):
+    """
+    Generate a new email file with the specified content and subject.
+
+    Parameters:
+    content (str): The content of the email.
+    subject (str): The subject of the email.
+
+    Returns:
+    The path to the newly created email file.
+    """
+    filename = f"pending_email_{uuid.uuid4()}.txt"
+    filepath = f'{get_data_root_path()}/emails/{filename}'
+
+    with open(filepath, 'w') as f:
+        f.write(f"SUBJECT--{subject}\n")
+        f.write(f"CONTENT---{content}")
+
+    return filepath
 
 def send_email(subject, content):
-    settings = GLOBAL_SETTING
-    sender =  settings.sender # 发件人邮箱(最好写全, 不然会失败) 
-    receivers = [settings.receiver] # 接收邮件，可设置为你的QQ邮箱或者其他邮箱 
-    message = MIMEText(content, 'plain', 'utf-8') # 内容, 格式, 编码 
-    message['From'] = "{}".format(sender) 
-    message['To'] = ",".join(receivers) 
-    message['Subject'] = subject
-    retry_times = 0
-    while retry_times < 5:
-        try: 
-            context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-            smtpObj = smtplib.SMTP(settings.smtpUrl, settings.smtpPort) # 启用SSL发信, 端口一般是465
-            smtpObj.ehlo()
-            smtpObj.starttls(context=context)
-            smtpObj.ehlo()
-            smtpObj.login(settings.userName, settings.passWord) # 登录验证 
-            smtpObj.sendmail(sender, receivers, message.as_string()) # 发送
-            logging.info("邮件已经发送。")
-            break
-        except smtplib.SMTPException as innerE: 
-            retry_times += 1
-            logging.error(f"Send email failed {retry_times} with error:{innerE}")
-            time.sleep(30 * retry_times)
+    __generate_email_file(subject, content)
 
 
 GLOBAL_SETTING = __get_settings()
