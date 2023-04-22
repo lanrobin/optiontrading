@@ -45,6 +45,8 @@ def __get_settings():
     j = json.loads(jsonStr)
     s = Settings(**j)
     return s
+def get_email_file_prefix():
+    return "email_"
 
 def __generate_email_file(subject, content):
     """
@@ -57,7 +59,7 @@ def __generate_email_file(subject, content):
     Returns:
     The path to the newly created email file.
     """
-    filename = f"pending_email_{uuid.uuid4()}.txt"
+    filename = f"{get_email_file_prefix()}{uuid.uuid4()}.txt"
     filepath = f'{get_data_root_path()}/emails/{filename}'
 
     with open(filepath, 'w') as f:

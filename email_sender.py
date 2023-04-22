@@ -107,7 +107,7 @@ def main():
     # we will extra 5 minutes after market close.
     while current < market_close_time + datetime.timedelta(minutes=5) or G_debug_main_method:
 
-        emails = get_all_pending_emails(email_folder, "pending_email*.txt")
+        emails = get_all_pending_emails(email_folder, f"{env.get_email_file_prefix()}*.txt")
         if len(emails) > 0:
             settings = env.GLOBAL_SETTING
             sender =  settings.sender # 发件人邮箱(最好写全, 不然会失败) 
