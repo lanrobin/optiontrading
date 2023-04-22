@@ -38,10 +38,11 @@ class MyEventHandler(pyinotify.ProcessEvent):
             retry_times = 0
             while retry_times < 5:
                 try: 
-                    context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+                    #context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
                     smtpObj = smtplib.SMTP(settings.smtpUrl, settings.smtpPort) # 启用SSL发信, 端口一般是465
                     smtpObj.ehlo()
-                    smtpObj.starttls(context=context)
+                    #smtpObj.starttls(context=context)
+                    smtpObj.starttls()
                     smtpObj.ehlo()
                     smtpObj.login(settings.userName, settings.passWord) # 登录验证
                     for email in emails:

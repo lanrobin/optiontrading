@@ -115,10 +115,11 @@ def main():
             retry_times = 0
             while retry_times < 5:
                 try: 
-                    context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+                    #context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
                     smtpObj = smtplib.SMTP(settings.smtpUrl, settings.smtpPort) # 启用SSL发信, 端口一般是465
                     smtpObj.ehlo()
-                    smtpObj.starttls(context=context)
+                    #smtpObj.starttls(context=context)
+                    smtpObj.starttls()
                     smtpObj.ehlo()
                     smtpObj.login(settings.userName, settings.passWord) # 登录验证
                     for email in emails:
@@ -145,8 +146,9 @@ def main():
 
 
 if __name__ == "__main__":
-    while True:
+    '''while True:
         env.send_email("测试主题", "测试内容从程序生成。")
         print("generate an email.")
         time.sleep(5)
-    # main()
+    '''
+    main()
