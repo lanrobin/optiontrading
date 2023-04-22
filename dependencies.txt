@@ -5,3 +5,4 @@ pip install BeautifulSoup4
 pip install --upgrade orjson
 pip install jproperties
 pip install snbpy
+pip install pyinotify
