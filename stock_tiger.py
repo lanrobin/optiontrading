@@ -6,7 +6,7 @@ from tigeropen.common.consts import (Language,        # 语言
                                 QuoteRight)       # 复权类型
 from tigeropen.tiger_open_config import TigerOpenClientConfig
 #from tigeropen.common.util.signature_utils import read_private_key
-#from tigeropen.quote.quote_client import QuoteClient
+from tigeropen.quote.quote_client import QuoteClient
 from tigeropen.trade.trade_client import TradeClient
 from tigeropen.common.consts import SecurityType as tst
 from tigeropen.common.consts import OrderStatus as tos
@@ -108,6 +108,7 @@ class TigerStockClient(IStockClient):
         # 最多重试次数
         client_config.retry_max_tries = 5
         self.TradeClient = TradeClient(client_config)
+        self.QuoteClient = QuoteClient(client_config)
         self.AccountId = account
     
 
