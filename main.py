@@ -11,7 +11,7 @@ from stock_snowball import SnowballStockClient
 import sys, getopt
 
 SWITCH_SECONDS_BEFORE_MARKET_CLOSE = 20
-SHORT_SLEEP_SECONDS_BEFORE_MARKET_CLOSE = 45
+SHORT_SLEEP_SECONDS_BEFORE_MARKET_CLOSE = 65
 __EMAIL_MAX_COUNT = 5
 PROTECT_TIMES = 4
 
@@ -172,12 +172,14 @@ def maintain_position(client: stock_base.IStockClient, symbol:str, market_close:
             env.send_email(f"{client.get_client_name()}期权仓位变化了，需要主关注。", f"已经把股票卖掉了:{diff}")
 
         G_maintain_position_error_count = 0
+        return True
     except Exception as e:
         G_maintain_position_error_count += 1
         err_msg = f"maintain_position {G_maintain_position_error_count}th error:{type(e)}:{e}"
         logging.error(err_msg)
         if G_maintain_position_error_count < __EMAIL_MAX_COUNT or G_maintain_position_error_count % 30 == 0:
             env.send_email(f"{client.get_client_name()}期权交易出错了", f"错误是:{err_msg}, 时间：{market_date_utils.datetime_str(datetime.datetime.now())}")
+        return False
 
 
 
@@ -278,6 +280,7 @@ def switch_position(client: stock_base.IStockClient, symbol:str, market_close: d
         logging.error(err_msg)
         if G_switch_position_error_count < __EMAIL_MAX_COUNT or G_switch_position_error_count % 30 == 0:
             env.send_email(f"{client.get_client_name()}期权交易出错了", f"错误是:{err_msg}, 时间：{market_date_utils.datetime_str(datetime.datetime.now())}")
+        return False
 
 def main():
     global G_target_symbol
@@ -335,6 +338,8 @@ def main():
     sleep_seconds_before_next_loop = 55
     stop_maintain_position = False
 
+    logging.debug(f"market_open_time:{market_date_utils.datetime_str(market_open_time)}, market_close_time:{market_date_utils.datetime_str(market_close_time)}")
+
     if G_debug_main_method:
         maintain_position(stockClient, G_target_symbol, market_close_time)
         switch_position(stockClient, G_target_symbol, market_close_time)
@@ -357,7 +362,9 @@ def main():
                 env.send_email(f"{stockClient.get_client_name()}期权交易开始了。", "时间:" + market_date_utils.datetime_str(datetime.datetime.now()))
                 start_email_sent = True
 
-            if market_date_utils.is_date_week_end(date_str):
+            is_end_of_week = market_date_utils.is_date_week_end(date_str)
+            logging.debug(f"is_end_of_week:{is_end_of_week},market_close_time:{market_date_utils.datetime_str(market_close_time)},delta_to_close:{delta_to_close}")
+            if is_end_of_week:
                 if delta_to_close < datetime.timedelta(seconds = SWITCH_SECONDS_BEFORE_MARKET_CLOSE):
                     logging.info("It is end of week today. We need switch the position.")
                     succeeded = switch_position(stockClient, G_target_symbol, market_close_time)
@@ -368,6 +375,8 @@ def main():
                     stop_maintain_position = True
                     logging.info(f"Step into fast sleep stage and skip maintain step. sleep interval:{sleep_seconds_before_next_loop}")
             
+            logging.debug(f"sleep_seconds_before_next_loop:{sleep_seconds_before_next_loop},stop_maintain_position:{stop_maintain_position}")
+
             if not stop_maintain_position:
                 # we will always matain the position regardless of end of the week.
                 logging.info("Market is open, we need to monitor the position.")
