@@ -291,10 +291,12 @@ def get_contract_number_of_option(symbol: str) -> int:
 
 def __get_stock_miu(symbol: str):
     if symbol.upper() == "SPY":
-        return 0.130108/100
+        return 0.17377/100
     elif symbol.upper() == "QQQ":
-        return 0.169529/100
+        return 0.215653/100
     elif symbol.upper() == "IWM":
-        return 0.105214/100
+        return 0.163570/100
+    elif symbol.upper() == "TLT":
+        return 0.038958/100
     else:
         raise Exception("Unsupported symbol:" + symbol)
