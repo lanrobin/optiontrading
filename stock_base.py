@@ -297,6 +297,8 @@ def __get_stock_miu(symbol: str):
     elif symbol.upper() == "IWM":
         return 0.163570/100
     elif symbol.upper() == "TLT":
-        return 0.038958/100
+        #return 0.038958/100
+        # 我们让它在下一个行权价上，因为在加息周期之末了。
+        return 0.059/100
     else:
         raise Exception("Unsupported symbol:" + symbol)
