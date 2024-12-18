@@ -50,7 +50,7 @@ def get_email_file_prefix():
 
 def generate_datetime_string():
     """Generates a datetime string in YYYY-MM-DD-HH-MM-SS-milliseconds format."""
-    now = datetime.datetime.now()
+    now = datetime.now()
     timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
     milliseconds = now.microsecond // 1000  # Get milliseconds (3 digits)
     return f"{timestamp_str}_{milliseconds:03d}"
