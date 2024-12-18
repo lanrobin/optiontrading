@@ -48,6 +48,14 @@ def __get_settings():
 def get_email_file_prefix():
     return "email_"
 
+def generate_datetime_string():
+    """Generates a datetime string in YYYY-MM-DD-HH-MM-SS-milliseconds format."""
+    now = datetime.datetime.now()
+    timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
+    milliseconds = now.microsecond // 1000  # Get milliseconds (3 digits)
+    return f"{timestamp_str}_{milliseconds:03d}"
+
+
 def __generate_email_file(subject, content):
     """
     Generate a new email file with the specified content and subject.
@@ -59,7 +67,7 @@ def __generate_email_file(subject, content):
     Returns:
     The path to the newly created email file.
     """
-    filename = f"{get_email_file_prefix()}{uuid.uuid4()}.txt"
+    filename = f"{get_email_file_prefix()}{generate_datetime_string()}.txt"
     filepath = f'{get_data_root_path()}/emails/{filename}'
 
     with open(filepath, 'w') as f:
